@@ -29,3 +29,10 @@ class TwitterClient:
             tweet = tweets[0]
             return f"https://girlcockx.com/{tweet.user.screen_name}/status/{tweet.id}"
         return None
+
+    async def check_existing_tweet_ids(self, user_id, tweet_ids):
+        await self.login()
+        tweets = await self.client.get_user_tweets(user_id, 'Tweets')
+        existing_ids = [str(tweet.id) for tweet in tweets]
+        # return only IDs from tweet_ids that still exist
+        return [tid for tid in tweet_ids if tid in existing_ids]

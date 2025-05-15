@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+env/
+venv/
+pip-wheel-metadata/
+*.pyo
+
+# dotenv environment variable files
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+
+# VSCode
+.vscode/
+
+# Logs
+logs
+*.log
+
+# Coverage directory used by tools like coverage.py
+htmlcov/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+
+# PyInstaller
+*.manifest
+*.spec
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# Others
+.DS_Store
+Thumbs.db
+
+# JSON
+*.json

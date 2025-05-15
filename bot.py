@@ -102,13 +102,16 @@ async def check_tweets():
             # Check JSON as before
             if tweet_id in sent_tweet_ids:
                 return
-            # fetch last message sent by the bot in the channel
-            async for msg in channel.history(limit=50):  # check up to 50 recent messages
+            # fetch the last 10 messages sent by the bot in the channel
+            bot_messages_checked = 0
+            async for msg in channel.history(limit=100):  # search up to 100 recent messages
                 if msg.author == bot.user:
+                    bot_messages_checked += 1
                     if tweet_url in msg.content:
-                        print("Last message sent by bot is the same tweet, skipping.")
+                        print("A recent message by the bot already contains this tweet, skipping.")
                         return
-                    break  # only check the most recent bot message
+                    if bot_messages_checked >= 10:
+                        break  # check the last 10 messages by the bot
             # send the tweet if not duplicate
             msg = await channel.send(tweet_url)
             sent_tweet_ids.append(tweet_id)

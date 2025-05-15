@@ -1,8 +1,9 @@
 import os
 import asyncio
 import json
+import random
 from discord.ext import commands, tasks
-from discord import Intents
+from discord import Intents, Activity, ActivityType
 from dotenv import load_dotenv
 from twitterclient import TwitterClient
 from collections import deque
@@ -56,11 +57,39 @@ last_tweet_url = None
 sent_tweet_ids = load_sent_tweet_ids()  # deque with maximum length of 25
 tweet_message_map = load_tweet_message_map()  # {tweet_id: discord_message_id}
 
+shifty_statuses = [
+    "analysis of the Commander's data",
+    "scans for raptures",
+    "over classified files",
+    "Central Government feeds",
+    "tutorials on squad tactics",
+    "diagnostics run",
+    "the Outpost's security feeds",
+    "the Ark's mainframe logs",
+    "suspicious activity in the Ark",
+    "squad formation tutorials",
+    "encrypted transmissions",
+    "mission briefings",
+    "for rapture threats",
+    "for anomalies in the system",
+    "for leaks about my true identity",
+    "for Pilgrim transmissions.",
+    "the Outpost's coffee machine",
+    "the Ark's communication channels",
+    "Tetra's Got Talent",
+]
+
+@tasks.loop(minutes=5)
+async def change_status():
+    status = random.choice(shifty_statuses)
+    await bot.change_presence(activity=Activity(type=ActivityType.watching, name=status))
+
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user}")
     check_tweets.start()
     check_deleted_tweets.start()
+    change_status.start()
 
 @tasks.loop(minutes=1)
 async def check_tweets():

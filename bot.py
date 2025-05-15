@@ -6,6 +6,8 @@ from discord import Intents
 from dotenv import load_dotenv
 from twitterclient import TwitterClient
 from collections import deque
+from threading import Thread
+from flask import Flask
 
 PERSIST_FILE = "sent_tweets.json"
 MESSAGE_MAP_FILE = "tweet_message_map.json"
@@ -107,6 +109,22 @@ async def check_deleted_tweets():
             save_tweet_message_map(tweet_message_map)
     except Exception as e:
         print(f"Error checking/deleting tweets: {e}")
+
+# flask server for render web service compatibility
+app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return "Bot is running!"
+
+def run_flask():
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
+
+# start flask server in a separate thread
+flask_thread = Thread(target=run_flask)
+flask_thread.daemon = True
+flask_thread.start()
 
 if __name__ == "__main__":
     bot.run(DISCORD_BOT_TOKEN)

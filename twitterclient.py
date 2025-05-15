@@ -30,9 +30,14 @@ class TwitterClient:
             return f"https://girlcockx.com/{tweet.user.screen_name}/status/{tweet.id}"
         return None
 
-    async def check_existing_tweet_ids(self, user_id, tweet_ids):
+    async def check_tweet_exists(self, tweet_id):
         await self.login()
-        tweets = await self.client.get_user_tweets(user_id, 'Tweets')
-        existing_ids = [str(tweet.id) for tweet in tweets]
-        # return only IDs from tweet_ids that still exist
-        return [tid for tid in tweet_ids if tid in existing_ids]
+        try:
+            tweet = await self.client.get_tweet_detail(tweet_id)
+            return tweet is not None
+        except Exception as e:
+            # detect rate limit or ambiguous errors
+            if "rate limit" in str(e).lower() or "429" in str(e):
+                print(f"Rate limit hit while checking tweet {tweet_id}: {e}")
+                return None  # ambiguous, do NOT delete
+            return None  # ambiguous, do NOT delete

@@ -124,26 +124,36 @@ async def check_tweets():
 @tasks.loop(minutes=1)
 async def check_deleted_tweets():
     global sent_tweet_ids, tweet_message_map
-    # get all tweet IDs currently tracked
-    tweet_ids = list(tweet_message_map.keys())
+    channel = bot.get_channel(DISCORD_CHANNEL_ID)
+    # check the most recent N tweets/messages (10)
+    tweet_ids = list(tweet_message_map.keys())[-10:]
     if not tweet_ids:
         return
-    # check which tweets still exist
     try:
-        existing_tweet_ids = await twitter.check_existing_tweet_ids(TRACKED_USER_ID, tweet_ids)
-        deleted_ids = set(tweet_ids) - set(existing_tweet_ids)
+        deleted_ids = set()
+        for tweet_id in tweet_ids:
+            try:
+                exists = await twitter.check_tweet_exists(tweet_id)
+            except Exception as e:
+                # log the error, skip deletion for this tweet
+                print(f"Error checking tweet {tweet_id}: {e}")
+                continue
+            # only mark for deletion if 100% sure it does not exist
+            if exists is False:
+                deleted_ids.add(tweet_id)
+            else:
+                # if exists is true or none/ambiguous, do NOT delete
+                continue
         if deleted_ids:
-            channel = bot.get_channel(DISCORD_CHANNEL_ID)
             for tweet_id in deleted_ids:
-                # delete the discord message
                 msg_id = tweet_message_map.get(tweet_id)
                 if msg_id:
                     try:
                         msg = await channel.fetch_message(msg_id)
                         await msg.delete()
+                        print(f"Deleted Discord message for tweet {tweet_id} (confirmed deleted on Twitter).")
                     except Exception as e:
                         print(f"Could not delete Discord message for tweet {tweet_id}: {e}")
-                # remove from tracking
                 if tweet_id in sent_tweet_ids:
                     sent_tweet_ids.remove(tweet_id)
                 tweet_message_map.pop(tweet_id, None)

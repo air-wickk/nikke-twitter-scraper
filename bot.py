@@ -62,7 +62,7 @@ async def on_ready():
     check_tweets.start()
     check_deleted_tweets.start()
 
-@tasks.loop(minutes=0.25)
+@tasks.loop(minutes=1)
 async def check_tweets():
     global last_tweet_url, sent_tweet_ids, tweet_message_map
     channel = bot.get_channel(DISCORD_CHANNEL_ID)
@@ -70,12 +70,22 @@ async def check_tweets():
         tweet_url = await twitter.get_latest_tweet_url(TRACKED_USER_ID)
         if tweet_url:
             tweet_id = tweet_url.split('/')[-1]
-            if tweet_id not in sent_tweet_ids:
-                msg = await channel.send(tweet_url)
-                sent_tweet_ids.append(tweet_id)
-                tweet_message_map[tweet_id] = msg.id
-                save_sent_tweet_ids(sent_tweet_ids)
-                save_tweet_message_map(tweet_message_map)
+            # Check JSON as before
+            if tweet_id in sent_tweet_ids:
+                return
+            # fetch last message sent by the bot in the channel
+            async for msg in channel.history(limit=50):  # check up to 50 recent messages
+                if msg.author == bot.user:
+                    if tweet_url in msg.content:
+                        print("Last message sent by bot is the same tweet, skipping.")
+                        return
+                    break  # only check the most recent bot message
+            # send the tweet if not duplicate
+            msg = await channel.send(tweet_url)
+            sent_tweet_ids.append(tweet_id)
+            tweet_message_map[tweet_id] = msg.id
+            save_sent_tweet_ids(sent_tweet_ids)
+            save_tweet_message_map(tweet_message_map)
     except Exception as e:
         print(f"Error fetching tweets: {e}")
 

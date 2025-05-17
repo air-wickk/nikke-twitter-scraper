@@ -41,3 +41,12 @@ class TwitterClient:
                 print(f"Rate limit hit while checking tweet {tweet_id}: {e}")
                 return None  # ambiguous, do NOT delete
             return None  # ambiguous, do NOT delete
+
+    async def get_recent_tweets(self, user_id, count=3):
+        await self.login()
+        try:
+            tweets = await self.client.get_user_tweets(user_id, 'Tweets')
+            return tweets[:count] if tweets else []
+        except Exception as e:
+            # handle rate limit, etc.
+            return []

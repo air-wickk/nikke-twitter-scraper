@@ -103,32 +103,37 @@ async def check_tweets():
     global last_tweet_url, sent_tweet_ids, tweet_message_map
     channel = bot.get_channel(DISCORD_CHANNEL_ID)
     try:
-        tweet_url = await twitter.get_latest_tweet_url(TRACKED_USER_ID)
-        logging.info(f"Fetched latest tweet URL: {tweet_url}") # logging
-        if tweet_url:
-            tweet_id = tweet_url.split('/')[-1]
-            logging.info(f"Checking tweet_id: {tweet_id}") # logging
+        tweets = await twitter.get_recent_tweets(TRACKED_USER_ID, count=3)
+        if not tweets:
+            logging.info("No recent tweets found.")
+            return
+        # post from oldest to newest
+        for tweet in reversed(tweets):
+            tweet_url = f"https://girlcockx.com/{tweet.user.screen_name}/status/{tweet.id}"
+            tweet_id = str(tweet.id)
             if tweet_id in sent_tweet_ids:
-                logging.info(f"Tweet {tweet_id} already in sent_tweet_ids, skipping.") #logging
-                return
-            # fetch the last 10 messages sent by the bot in the channel
+                continue
+            # Check last 10 messages from the bot for duplicates
             bot_messages_checked = 0
-            async for msg in channel.history(limit=25):  # search up to 25 recent messages
+            duplicate_found = False
+            async for msg in channel.history(limit=25):
                 if msg.author == bot.user:
                     bot_messages_checked += 1
                     if tweet_url in msg.content:
-                        logging.info(f"Bot already posted tweet {tweet_id} in recent messages, skipping.") # logging
-                        return
+                        duplicate_found = True
+                        break
                     if bot_messages_checked >= 10:
                         break
+            if duplicate_found:
+                continue
             msg = await channel.send(tweet_url)
-            logging.info(f"Sent tweet {tweet_id} to channel {channel.id} as message {msg.id}") # logging
+            logging.info(f"Sent tweet {tweet_id} to channel {channel.id} as message {msg.id}")
             sent_tweet_ids.append(tweet_id)
             tweet_message_map[tweet_id] = msg.id
             save_sent_tweet_ids(sent_tweet_ids)
             save_tweet_message_map(tweet_message_map)
     except Exception as e:
-        logging.error(f"Error fetching tweets: {e}") # logging
+        logging.error(f"Error fetching tweets: {e}")
 
 @tasks.loop(minutes=1)
 async def check_deleted_tweets():

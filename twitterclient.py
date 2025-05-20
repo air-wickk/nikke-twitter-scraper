@@ -46,7 +46,8 @@ class TwitterClient:
         await self.login()
         try:
             tweets = await self.client.get_user_tweets(user_id, 'Tweets')
-            return tweets[:count] if tweets else []
+            filtered = [tweet for tweet in tweets if getattr(tweet, "in_reply_to_status_id", None) is None]
+            return filtered[:count] if filtered else []
         except Exception as e:
             # handle rate limit, etc.
             return []

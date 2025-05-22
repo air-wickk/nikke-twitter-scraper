@@ -98,7 +98,7 @@ async def on_ready():
     check_deleted_tweets.start()
     change_status.start()
 
-@tasks.loop(minutes=1)
+@tasks.loop(minutes=2)
 async def check_tweets():
     global last_tweet_url, sent_tweet_ids, tweet_message_map
     channel = bot.get_channel(DISCORD_CHANNEL_ID)
@@ -116,7 +116,7 @@ async def check_tweets():
             # Check last 10 messages from the bot for duplicates
             bot_messages_checked = 0
             duplicate_found = False
-            async for msg in channel.history(limit=25):
+            async for msg in channel.history(limit=200): # Number of messages in general to check
                 if msg.author == bot.user:
                     bot_messages_checked += 1
                     if tweet_url in msg.content:
@@ -135,12 +135,12 @@ async def check_tweets():
     except Exception as e:
         logging.error(f"Error fetching tweets: {e}")
 
-@tasks.loop(minutes=1)
+@tasks.loop(minutes=10)
 async def check_deleted_tweets():
     global sent_tweet_ids, tweet_message_map
     channel = bot.get_channel(DISCORD_CHANNEL_ID)
-    # check the most recent N tweets/messages (5)
-    tweet_ids = list(tweet_message_map.keys())[-5:]
+    # check only the most recent tweet/message (1)
+    tweet_ids = list(tweet_message_map.keys())[-1:]
     if not tweet_ids:
         logging.info("No tweet IDs to check for deletion.") # logging
         return

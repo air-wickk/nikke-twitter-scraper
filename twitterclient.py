@@ -11,16 +11,29 @@ class TwitterClient:
         self.password = os.getenv('LOGIN_PASSWORD')
         self.client = Client('en-US')
         self.logged_in = False
+        self.cookies_file = 'cookies.json'
 
     async def login(self):
-        if not self.logged_in:
-            await self.client.login(
-                auth_info_1=self.username,
-                auth_info_2=self.email,
-                password=self.password,
-                cookies_file='cookies.json'
-            )
-            self.logged_in = True
+        if self.logged_in:
+            return
+        if os.path.exists(self.cookies_file):
+            try:
+                self.client.load_cookies(self.cookies_file)
+                await self.client.get_home_timeline()
+                self.logged_in = True
+                return
+            except Exception as e:
+                print(f"Failed to load cookies or cookies expired: {e}")
+        # if loading cookies failed, do a full login
+        await self.client.login(
+            auth_info_1=self.username,
+            auth_info_2=self.email,
+            password=self.password,
+            cookies_file=self.cookies_file
+        )
+        self.logged_in = True
+        # save cookies after successful login
+        self.client.save_cookies(self.cookies_file)
 
     async def get_latest_tweet_url(self, user_id):
         await self.login()

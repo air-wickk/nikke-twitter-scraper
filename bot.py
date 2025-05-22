@@ -116,7 +116,7 @@ async def check_tweets():
             # Check last 10 messages from the bot for duplicates
             bot_messages_checked = 0
             duplicate_found = False
-            async for msg in channel.history(limit=25):
+            async for msg in channel.history(limit=200): # Number of messages in general to check
                 if msg.author == bot.user:
                     bot_messages_checked += 1
                     if tweet_url in msg.content:

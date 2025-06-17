@@ -10,6 +10,7 @@ from collections import deque
 from threading import Thread
 from flask import Flask
 import logging
+import time
 
 PERSIST_FILE = "sent_tweets.json"
 MESSAGE_MAP_FILE = "tweet_message_map.json"
@@ -95,87 +96,45 @@ async def change_status():
 async def on_ready():
     print(f"Logged in as {bot.user}")
     check_tweets.start()
-    check_deleted_tweets.start()
     change_status.start()
 
-@tasks.loop(minutes=2)
+async def random_sleep(min_seconds=120, max_seconds=300):
+    await asyncio.sleep(random.randint(min_seconds, max_seconds))
+
+@tasks.loop(seconds=1)  # We'll control the interval manually
 async def check_tweets():
     global last_tweet_url, sent_tweet_ids, tweet_message_map
     channel = bot.get_channel(DISCORD_CHANNEL_ID)
+    await random_sleep()  # Sleep 2-3 minutes randomly before each poll
     try:
         tweets = await twitter.get_recent_tweets(TRACKED_USER_ID, count=3)
         if not tweets:
             logging.info("No recent tweets found.")
             return
-        # post from oldest to newest
-        for tweet in reversed(tweets):
-            tweet_url = f"https://girlcockx.com/{tweet.user.screen_name}/status/{tweet.id}"
+
+        # Gather sent tweet IDs from recent bot messages in Discord
+        sent_ids = set()
+        async for msg in channel.history(limit=75):
+            if msg.author == bot.user:
+                parts = msg.content.strip().split("/")
+                if parts and parts[-1].isdigit():
+                    sent_ids.add(parts[-1])
+
+        # Find tweets that haven't been sent yet, stop at first already sent
+        tweets_to_send = []
+        for tweet in tweets:
             tweet_id = str(tweet.id)
-            if tweet_id in sent_tweet_ids:
-                continue
-            # Check last 10 messages from the bot for duplicates
-            bot_messages_checked = 0
-            duplicate_found = False
-            async for msg in channel.history(limit=200): # Number of messages in general to check
-                if msg.author == bot.user:
-                    bot_messages_checked += 1
-                    if tweet_url in msg.content:
-                        duplicate_found = True
-                        break
-                    if bot_messages_checked >= 10:
-                        break
-            if duplicate_found:
-                continue
+            if tweet_id in sent_ids:
+                break
+            tweets_to_send.append(tweet)
+
+        # Send new tweets in order from oldest to newest
+        for tweet in reversed(tweets_to_send):
+            tweet_url = f"https://x.com/{tweet.user.screen_name}/status/{tweet.id}"
             msg = await channel.send(tweet_url)
-            logging.info(f"Sent tweet {tweet_id} to channel {channel.id} as message {msg.id}")
-            sent_tweet_ids.append(tweet_id)
-            tweet_message_map[tweet_id] = msg.id
-            save_sent_tweet_ids(sent_tweet_ids)
-            save_tweet_message_map(tweet_message_map)
+            logging.info(f"Sent tweet {tweet.id} to channel {channel.id} as message {msg.id}")
     except Exception as e:
         logging.error(f"Error fetching tweets: {e}")
-
-@tasks.loop(minutes=10)
-async def check_deleted_tweets():
-    global sent_tweet_ids, tweet_message_map
-    channel = bot.get_channel(DISCORD_CHANNEL_ID)
-    # check only the most recent tweet/message (1)
-    tweet_ids = list(tweet_message_map.keys())[-1:]
-    if not tweet_ids:
-        logging.info("No tweet IDs to check for deletion.") # logging
-        return
-    try:
-        deleted_ids = set()
-        for tweet_id in tweet_ids:
-            try:
-                exists = await twitter.check_tweet_exists(tweet_id)
-                logging.info(f"Checked tweet {tweet_id}: exists={exists}") # logging
-            except Exception as e:
-                logging.warning(f"Error checking tweet {tweet_id}: {e}") # logging
-                continue
-            if exists is False:
-                logging.info(f"Tweet {tweet_id} confirmed deleted on Twitter, marking for Discord deletion.") # logging
-                deleted_ids.add(tweet_id)
-            else:
-                # if exists is true or none/ambiguous, do NOT delete
-                continue
-        if deleted_ids:
-            for tweet_id in deleted_ids:
-                msg_id = tweet_message_map.get(tweet_id)
-                if msg_id:
-                    try:
-                        msg = await channel.fetch_message(msg_id)
-                        await msg.delete()
-                        logging.info(f"Deleted Discord message {msg_id} for tweet {tweet_id}.") # logging
-                    except Exception as e:
-                        logging.error(f"Could not delete Discord message for tweet {tweet_id}: {e}") # logging
-                if tweet_id in sent_tweet_ids:
-                    sent_tweet_ids.remove(tweet_id)
-                tweet_message_map.pop(tweet_id, None)
-            save_sent_tweet_ids(sent_tweet_ids)
-            save_tweet_message_map(tweet_message_map)
-    except Exception as e:
-        logging.error(f"Error checking/deleting tweets: {e}") # logging
 
 # flask server for render web service compatibility
 app = Flask(__name__)

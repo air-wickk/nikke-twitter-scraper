@@ -92,13 +92,48 @@ async def change_status():
     status = random.choice(shifty_statuses)
     await bot.change_presence(activity=Activity(type=ActivityType.watching, name=status))
 
+async def random_human_sleep():
+    # Wait between 10 and 30 minutes between "human" actions
+    await asyncio.sleep(random.randint(600, 1800))
+
+@tasks.loop(seconds=10)
+async def human_like_activity():
+    await random_human_sleep()
+    try:
+        action = random.choice(["home", "notifications", "like"])
+        if action == "home":
+            await twitter.client.get_home_timeline()
+            logging.info("Simulated human: fetched home timeline.")
+        elif action == "notifications":
+            await twitter.client.get_notifications()
+            logging.info("Simulated human: fetched notifications.")
+        elif action == "like":
+            # Like a random tweet (1st, 2nd, or 3rd) on the home timeline, or skip
+            timeline = await twitter.client.get_home_timeline()
+            if timeline:
+                idx = random.choice([0, 1, 2, None])  # Sometimes skip liking
+                if idx is not None and idx < len(timeline):
+                    tweet = timeline[idx]
+                    try:
+                        await tweet.favorite()
+                        logging.info(f"Simulated human: liked tweet {tweet.id} at position {idx}.")
+                    except Exception as e:
+                        logging.warning(f"Failed to like tweet {tweet.id}: {e}")
+                else:
+                    logging.info("Simulated human: skipped liking a tweet this time.")
+            else:
+                logging.info("No tweets found to like on home timeline.")
+    except Exception as e:
+        logging.warning(f"Human-like activity failed: {e}")
+
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user}")
     check_tweets.start()
     change_status.start()
+    human_like_activity.start()  # Start the human-like activity loop
 
-async def random_sleep(min_seconds=120, max_seconds=300):
+async def random_sleep(min_seconds=120, max_seconds=300): # 120 300
     await asyncio.sleep(random.randint(min_seconds, max_seconds))
 
 @tasks.loop(seconds=1)  # We'll control the interval manually
@@ -130,7 +165,7 @@ async def check_tweets():
 
         # Send new tweets in order from oldest to newest
         for tweet in reversed(tweets_to_send):
-            tweet_url = f"https://x.com/{tweet.user.screen_name}/status/{tweet.id}"
+            tweet_url = f"https://vxtwitter.com/{tweet.user.screen_name}/status/{tweet.id}"
             msg = await channel.send(tweet_url)
             logging.info(f"Sent tweet {tweet.id} to channel {channel.id} as message {msg.id}")
     except Exception as e:

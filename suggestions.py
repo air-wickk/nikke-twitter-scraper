@@ -1,16 +1,27 @@
+import os
+from dotenv import load_dotenv
 import discord
 from discord.ext import commands
 from discord import app_commands
 import datetime
 
-SUGGESTION_CHANNEL_ID = 1323752108507271189
+load_dotenv()
+SUGGESTION_CHANNEL_ID = int(os.getenv("SUGGESTION_CHANNEL_ID"))
 
 class SuggestionCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @app_commands.command(name="suggestion", description="Send a suggestion for the server (DM only)")
-    async def suggestion(self, interaction: discord.Interaction, user_input: str):
+    @app_commands.command(
+        name="suggestion",
+        description="Send a suggestion for the server (DM only)"
+    )
+    async def suggestion(
+        self,
+        interaction: discord.Interaction,
+        title: str,
+        description: str
+    ):
         # If used in a server, tell user to check DMs and send instructions
         if interaction.guild is not None:
             await interaction.response.send_message(
@@ -30,18 +41,16 @@ class SuggestionCog(commands.Cog):
             return
 
         embed = discord.Embed(
-            title="New Server Suggestion",
+            title=title,
             description=user_input,
-            color=discord.Color.blurple(),
-            timestamp=datetime.datetime.utcnow()
+            color=discord.Color(0xb8effc),
         )
         embed.set_author(
-            name=f"{interaction.user} ({interaction.user.id})",
+            name=f"{interaction.user}",
             icon_url=interaction.user.display_avatar.url
         )
         embed.add_field(name="User", value=f"<@{interaction.user.id}>", inline=True)
         embed.add_field(name="Time", value=f"<t:{int(datetime.datetime.utcnow().timestamp())}:F>", inline=True)
-        embed.set_footer(text="Suggestion System")
 
         await suggestion_channel.send(embed=embed)
         await interaction.response.send_message(
@@ -55,7 +64,7 @@ class SuggestionCog(commands.Cog):
             # Ignore if message is a slash command (they don't show up as normal messages)
             if not message.content.startswith("/"):
                 await message.channel.send(
-                    "Hi! You can only submit suggestions using the /suggestion command. Please type `/suggestion your suggestion here`."
+                    "Hi! You can only submit suggestions using the suggestion command. Please type `/suggestion [your suggestion here]`."
                 )
 
 async def setup(bot):

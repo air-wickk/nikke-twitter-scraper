@@ -11,6 +11,7 @@ from threading import Thread
 from flask import Flask
 import logging
 import time
+import discord
 
 PERSIST_FILE = "sent_tweets.json"
 MESSAGE_MAP_FILE = "tweet_message_map.json"
@@ -49,9 +50,10 @@ DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 DISCORD_CHANNEL_ID = int(os.getenv("DISCORD_CHANNEL_ID"))
 TRACKED_USER_ID = os.getenv("TRACKED_USER_ID")
 
-intents = Intents.default()
-intents.guilds = True
+intents = discord.Intents.default()
 intents.messages = True
+intents.message_content = True
+intents.guilds = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 twitter = TwitterClient()
@@ -130,6 +132,13 @@ async def human_like_activity():
 async def on_ready():
     await bot.tree.sync()
     print(f"Logged in as {bot.user}")
+
+    # Load cogs (only once)
+    if not hasattr(bot, "cogs_loaded"):
+        await bot.load_extension("suggestions")
+        await bot.load_extension("ownersync")
+        bot.cogs_loaded = True
+
     check_tweets.start()
     change_status.start()
     human_like_activity.start()  # Start the human-like activity loop
@@ -187,9 +196,6 @@ def run_flask():
 flask_thread = Thread(target=run_flask)
 flask_thread.daemon = True
 flask_thread.start()
-
-# load suggestion cog
-bot.load_extension("suggestions")
 
 if __name__ == "__main__":
     bot.run(DISCORD_BOT_TOKEN)

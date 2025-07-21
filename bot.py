@@ -128,6 +128,7 @@ async def human_like_activity():
 
 @bot.event
 async def on_ready():
+    await bot.tree.sync()
     print(f"Logged in as {bot.user}")
     check_tweets.start()
     change_status.start()
@@ -186,6 +187,9 @@ def run_flask():
 flask_thread = Thread(target=run_flask)
 flask_thread.daemon = True
 flask_thread.start()
+
+# load suggestion cog
+bot.load_extension("suggestions")
 
 if __name__ == "__main__":
     bot.run(DISCORD_BOT_TOKEN)

@@ -14,7 +14,7 @@ class SuggestionCog(commands.Cog):
 
     @app_commands.command(
         name="suggestion",
-        description="Send a suggestion for the server (DM only)"
+        description="Send a suggestion for the server or via DM"
     )
     async def suggestion(
         self,
@@ -22,27 +22,17 @@ class SuggestionCog(commands.Cog):
         title: str,
         description: str
     ):
-        # If used in a server, tell user to check DMs and send instructions
-        if interaction.guild is not None:
-            await interaction.response.send_message(
-                "Check your DMs! You can only use /suggestion in DMs. Instructions have been sent.", ephemeral=True
-            )
-            try:
-                await interaction.user.send(
-                    "Hi! To submit a suggestion, please DM me and use the /suggestion command followed by your suggestion."
-                )
-            except Exception:
-                pass
-            return
-
         suggestion_channel = self.bot.get_channel(SUGGESTION_CHANNEL_ID)
         if suggestion_channel is None:
-            await interaction.response.send_message("Suggestion channel not found. Please contact an admin.", ephemeral=True)
+            await interaction.response.send_message(
+                "Suggestion channel not found. Please let an admin know!",
+                ephemeral=True
+            )
             return
 
         embed = discord.Embed(
             title=title,
-            description=user_input,
+            description=description,
             color=discord.Color(0xb8effc),
         )
         embed.set_author(
@@ -54,7 +44,8 @@ class SuggestionCog(commands.Cog):
 
         await suggestion_channel.send(embed=embed)
         await interaction.response.send_message(
-            "Your suggestion has been sent! Thank you for helping improve the server <a:aliceclap:1396972200291995680>", ephemeral=True
+            "Your feedback has been sent! Thank you for helping improve the server <a:aliceclap:1396972200291995680>",
+            ephemeral=True
         )
 
     @commands.Cog.listener()
@@ -63,9 +54,13 @@ class SuggestionCog(commands.Cog):
         if message.guild is None and not message.author.bot:
             # Ignore if message is a slash command (they don't show up as normal messages)
             if not message.content.startswith("/"):
-                await message.channel.send(
-                    "Hi! You can only submit suggestions using the suggestion command. Please type `/suggestion [your suggestion here]`."
+                now = int(datetime.datetime.utcnow().timestamp())
+                delete_time = now + 60
+                msg = await message.channel.send(
+                    f"Hi! You can only submit suggestions using the `/suggestion` command. This message will self-destruct <t:{delete_time}:R>."
                 )
+                await discord.utils.sleep_until(datetime.datetime.utcfromtimestamp(delete_time))
+                await msg.delete()
 
 async def setup(bot):
     await bot.add_cog(SuggestionCog(bot))

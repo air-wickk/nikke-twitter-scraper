@@ -76,10 +76,10 @@ shifty_statuses = [
     "mission briefings",
     "for rapture threats",
     "for anomalies in the system",
-    "for leaks about my true identity",
     "for Pilgrim transmissions.",
     "the Outpost's coffee machine",
     "the Ark's communication channels",
+    "videos on Blabla",
     "Tetra's Got Talent",
 ]
 
@@ -137,6 +137,7 @@ async def on_ready():
     if not hasattr(bot, "cogs_loaded"):
         await bot.load_extension("suggestions")
         await bot.load_extension("ownersync")
+        await bot.load_extension("joincode")
         bot.cogs_loaded = True
 
     check_tweets.start()

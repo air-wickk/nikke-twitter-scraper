@@ -43,7 +43,7 @@ class JoinCodeCog(commands.Cog):
 
     @app_commands.command(
         name="joincode",
-        description="Get the join code for one of our guilds/unions (only you can see the result)"
+        description="Get the join code for one of our guilds/unions (only visible to you)"
     )
     async def joincode(self, interaction: discord.Interaction):
         await interaction.response.send_message(

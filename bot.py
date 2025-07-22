@@ -102,29 +102,35 @@ async def random_human_sleep():
 async def human_like_activity():
     await random_human_sleep()
     try:
-        action = random.choice(["home", "notifications", "like"])
-        if action == "home":
-            await twitter.client.get_home_timeline()
-            logging.info("Simulated human: fetched home timeline.")
-        elif action == "notifications":
-            await twitter.client.get_notifications()
-            logging.info("Simulated human: fetched notifications.")
-        elif action == "like":
-            # Like a random tweet (1st, 2nd, or 3rd) on the home timeline, or skip
-            timeline = await twitter.client.get_home_timeline()
-            if timeline:
-                idx = random.choice([0, 1, 2, None])  # Sometimes skip liking
-                if idx is not None and idx < len(timeline):
-                    tweet = timeline[idx]
-                    try:
-                        await tweet.favorite()
-                        logging.info(f"Simulated human: liked tweet {tweet.id} at position {idx}.")
-                    except Exception as e:
-                        logging.warning(f"Failed to like tweet {tweet.id}: {e}")
-                else:
-                    logging.info("Simulated human: skipped liking a tweet this time.")
+        action = random.choice(["trends", "search", "like"])
+        if action == "trends":
+            # Get trending topics
+            trends = await twitter.client.get_trends('trending')
+            logging.info(f"Simulated human: fetched trends: {trends}")
+        elif action == "search":
+            # Search for latest tweets with a query
+            tweets = await twitter.client.search_tweet('NIKKE', 'Latest')
+            if tweets:
+                for tweet in tweets:
+                    logging.info(f"Simulated human: found tweet {tweet.id}")
+                # Search more tweets (pagination)
+                more_tweets = await tweets.next()
+                for tweet in more_tweets:
+                    logging.info(f"Simulated human: found more tweet {tweet.id}")
             else:
-                logging.info("No tweets found to like on home timeline.")
+                logging.info("Simulated human: no tweets found for search.")
+        elif action == "like":
+            # Like a random tweet from search
+            tweets = await twitter.client.search_tweet('NIKKE', 'Latest')
+            if tweets:
+                tweet = random.choice(list(tweets))
+                try:
+                    await tweet.favorite()
+                    logging.info(f"Simulated human: liked tweet {tweet.id}.")
+                except Exception as e:
+                    logging.warning(f"Failed to like tweet {tweet.id}: {e}")
+            else:
+                logging.info("Simulated human: no tweets found to like.")
     except Exception as e:
         logging.warning(f"Human-like activity failed: {e}")
 

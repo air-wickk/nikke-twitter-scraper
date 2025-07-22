@@ -20,8 +20,12 @@ class JoinCodeView(discord.ui.View):
 class GameSelect(discord.ui.Select):
     def __init__(self):
         options = [
-            discord.SelectOption(label=game, value=game)
-            for game in GAME_CODES.keys()
+            discord.SelectOption(label="NIKKE: Goddess of Victory", value="NIKKE: Goddess of Victory", emoji="<:nikkeicon:1397335729683693628>"),
+            discord.SelectOption(label="Azur Lane", value="Azur Lane", emoji="<:azurlaneicon:1397335781110190130>"),
+            discord.SelectOption(label="Blue Archive", value="Blue Archive", emoji="<:BAicon:1397335739678593084>"),
+            discord.SelectOption(label="Umamusume: Pretty Derby", value="Umamusume: Pretty Derby", emoji="<:umaicon:1397335718262735022>"),
+            discord.SelectOption(label="Girls Frontline 2: EXILIUM", value="Girls Frontline 2: EXILIUM", emoji="<:gfl2icon:1397335772239233151>"),
+            discord.SelectOption(label="Browndust 2", value="Browndust 2", emoji="<:browndust2icon:1397335749480939570>")
         ]
         super().__init__(
             placeholder="Choose a game...",
@@ -33,7 +37,7 @@ class GameSelect(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction):
         code = GAME_CODES.get(self.values[0], "No code found for this game.")
         await interaction.response.send_message(
-            f"**Join code for {self.values[0]}:** `{code}`",
+            f"Join code for **{self.values[0]}**: `{code}`",
             ephemeral=True
         )
 

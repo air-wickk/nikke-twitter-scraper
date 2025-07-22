@@ -95,42 +95,24 @@ async def change_status():
     await bot.change_presence(activity=Activity(type=ActivityType.watching, name=status))
 
 async def random_human_sleep():
-    # Wait between 10 and 30 minutes between "human" actions
-    await asyncio.sleep(random.randint(600, 1800))
+    # Wait between 15 and 30 minutes between "human" actions
+    await asyncio.sleep(random.randint(900, 1800))
 
 @tasks.loop(seconds=10)
 async def human_like_activity():
     await random_human_sleep()
     try:
-        action = random.choice(["trends", "search", "like"])
-        if action == "trends":
-            # Get trending topics
-            trends = await twitter.client.get_trends('trending')
-            logging.info(f"Simulated human: fetched trends: {trends}")
-        elif action == "search":
-            # Search for latest tweets with a query
-            tweets = await twitter.client.search_tweet('NIKKE', 'Latest')
-            if tweets:
-                for tweet in tweets:
-                    logging.info(f"Simulated human: found tweet {tweet.id}")
-                # Search more tweets (pagination)
-                more_tweets = await tweets.next()
-                for tweet in more_tweets:
-                    logging.info(f"Simulated human: found more tweet {tweet.id}")
-            else:
-                logging.info("Simulated human: no tweets found for search.")
-        elif action == "like":
-            # Like a random tweet from search
-            tweets = await twitter.client.search_tweet('NIKKE', 'Latest')
-            if tweets:
-                tweet = random.choice(list(tweets))
-                try:
-                    await tweet.favorite()
-                    logging.info(f"Simulated human: liked tweet {tweet.id}.")
-                except Exception as e:
-                    logging.warning(f"Failed to like tweet {tweet.id}: {e}")
-            else:
-                logging.info("Simulated human: no tweets found to like.")
+        # Like a random tweet from search
+        tweets = await twitter.client.search_tweet('NIKKE', 'Latest')
+        if tweets:
+            tweet = random.choice(list(tweets))
+            try:
+                await tweet.favorite()
+                logging.info(f"Simulated human: liked tweet {tweet.id}.")
+            except Exception as e:
+                logging.warning(f"Failed to like tweet {tweet.id}: {e}")
+        else:
+            logging.info("Simulated human: no tweets found to like.")
     except Exception as e:
         logging.warning(f"Human-like activity failed: {e}")
 

@@ -19,7 +19,7 @@ class OwnerSync(commands.Cog, name="OwnerSync"):
             if message.author.id != app_info.owner.id:
                 await message.channel.send("Only the bot owner can sync commands.")
                 return
-            synced = await self.bot.tree.sync(guild=discord.Object(id=880947859833372733))
+            synced = await self.bot.tree.sync()
             await message.channel.send(f"Successfully synced {len(synced)} command(s).")
 
 async def setup(bot):

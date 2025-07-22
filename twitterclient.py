@@ -1,6 +1,7 @@
 import os
 from twikit import Client
 from dotenv import load_dotenv
+import sys
 
 load_dotenv()
 
@@ -12,6 +13,7 @@ class TwitterClient:
         self.client = Client('en-US')
         self.logged_in = False
         self.cookies_file = 'cookies.json'
+        self.awaiting_email_verification = False
 
     async def login(self):
         if self.logged_in:
@@ -23,6 +25,14 @@ class TwitterClient:
                 self.logged_in = True
                 return
             except Exception as e:
+                msg = str(e)
+                # Set flag if verification prompt seen
+                if "Verify your identity by entering the email address" in msg:
+                    self.awaiting_email_verification = True
+                # If hint appears and flag is set, print email
+                if "Hint:" in msg and self.awaiting_email_verification:
+                    print(self.email)
+                    self.awaiting_email_verification = False
                 print(f"Failed to load cookies or cookies expired: {e}")
         # if loading cookies failed, do a full login
         await self.client.login(
@@ -32,7 +42,6 @@ class TwitterClient:
             cookies_file=self.cookies_file
         )
         self.logged_in = True
-        # save cookies after successful login
         self.client.save_cookies(self.cookies_file)
 
     async def get_latest_tweet_url(self, user_id):
@@ -62,5 +71,10 @@ class TwitterClient:
             filtered = [tweet for tweet in tweets if getattr(tweet, "in_reply_to_status_id", None) is None]
             return filtered[:count] if filtered else []
         except Exception as e:
-            # handle rate limit, etc.
+            if "401" in str(e) or "Unauthorized" in str(e):
+                print("Session expired, re-logging in with fresh cookies...")
+                self.logged_in = False
+                if os.path.exists(self.cookies_file):
+                    os.remove(self.cookies_file)
+                await self.login()
             return []

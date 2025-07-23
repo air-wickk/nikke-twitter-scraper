@@ -2,6 +2,7 @@ import os
 from twikit import Client
 from dotenv import load_dotenv
 import sys
+from twikit.errors import Unauthorized
 
 load_dotenv()
 
@@ -21,7 +22,8 @@ class TwitterClient:
         if os.path.exists(self.cookies_file):
             try:
                 self.client.load_cookies(self.cookies_file)
-                await self.client.get_home_timeline()
+                # Use a lightweight search to check session validity
+                await self.client.search_tweet('NIKKE', 'Latest', count=1)
                 self.logged_in = True
                 return
             except Exception as e:
@@ -70,11 +72,11 @@ class TwitterClient:
             tweets = await self.client.get_user_tweets(user_id, 'Tweets')
             filtered = [tweet for tweet in tweets if getattr(tweet, "in_reply_to_status_id", None) is None]
             return filtered[:count] if filtered else []
+        except Unauthorized:
+            print("Session expired, re-logging in...")
+            self.logged_in = False
+            await self.login()
+            return []
         except Exception as e:
-            if "401" in str(e) or "Unauthorized" in str(e):
-                print("Session expired, re-logging in with fresh cookies...")
-                self.logged_in = False
-                if os.path.exists(self.cookies_file):
-                    os.remove(self.cookies_file)
-                await self.login()
+            print(f"Error fetching tweets: {e}")
             return []

@@ -95,24 +95,32 @@ async def change_status():
     await bot.change_presence(activity=Activity(type=ActivityType.watching, name=status))
 
 async def random_human_sleep():
-    # Wait between 15 and 30 minutes between "human" actions
-    await asyncio.sleep(random.randint(900, 1800))
+    # Wait between 15 and 40 minutes between "human" actions
+    await asyncio.sleep(random.randint(900, 2400))
 
 @tasks.loop(seconds=10)
 async def human_like_activity():
     await random_human_sleep()
     try:
-        # Like a random tweet from search
-        tweets = await twitter.client.search_tweet('NIKKE', 'Latest')
-        if tweets:
-            tweet = random.choice(list(tweets))
-            try:
-                await tweet.favorite()
+        action = random.choice(["bookmark", "notifications", "like", "search"])
+        if action == "bookmark":
+            tweets = await twitter.client.search_tweet('NIKKE', 'Latest', count=1)
+            tweet = next(iter(tweets), None)
+            if tweet:
+                await twitter.client.bookmark_tweet(tweet.id)
+                logging.info(f"Simulated human: bookmarked tweet {tweet.id}.")
+        elif action == "notifications":
+            notifications = await twitter.client.get_notifications('Mentions')
+            logging.info(f"Simulated human: checked notifications, got {len(notifications)} items.")
+        elif action == "like":
+            tweets = await twitter.client.search_tweet('NIKKE', 'Latest', count=1)
+            tweet = next(iter(tweets), None)
+            if tweet:
+                await twitter.client.favorite_tweet(tweet.id)
                 logging.info(f"Simulated human: liked tweet {tweet.id}.")
-            except Exception as e:
-                logging.warning(f"Failed to like tweet {tweet.id}: {e}")
-        else:
-            logging.info("Simulated human: no tweets found to like.")
+        elif action == "search":
+            await twitter.client.search_tweet('NIKKE', 'Latest', count=1)
+            logging.info("Simulated human: performed a search.")
     except Exception as e:
         logging.warning(f"Human-like activity failed: {e}")
 
@@ -135,7 +143,7 @@ async def on_ready():
 async def random_sleep(min_seconds=120, max_seconds=300): # 120 300
     await asyncio.sleep(random.randint(min_seconds, max_seconds))
 
-@tasks.loop(seconds=1)  # We'll control the interval manually
+@tasks.loop(seconds=1)
 async def check_tweets():
     global last_tweet_url, sent_tweet_ids, tweet_message_map
     channel = bot.get_channel(DISCORD_CHANNEL_ID)

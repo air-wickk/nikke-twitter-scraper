@@ -94,6 +94,7 @@ async def change_status():
     status = random.choice(shifty_statuses)
     await bot.change_presence(activity=Activity(type=ActivityType.watching, name=status))
 
+"""
 async def random_human_sleep():
     # Wait between 15 and 40 minutes between "human" actions
     await asyncio.sleep(random.randint(900, 2400))
@@ -104,26 +105,26 @@ async def human_like_activity():
     try:
         action = random.choice(["bookmark", "notifications", "like", "search"])
         if action == "bookmark":
-            tweets = await twitter.client.search_tweet('NIKKE', 'Latest', count=1)
+            tweets = await twitter.search_tweet('NIKKE', limit=1)
             tweet = next(iter(tweets), None)
             if tweet:
-                await twitter.client.bookmark_tweet(tweet.id)
+                await twitter.bookmark_tweet(tweet)
                 logging.info(f"Simulated human: bookmarked tweet {tweet.id}.")
         elif action == "notifications":
-            notifications = await twitter.client.get_notifications('Mentions')
+            notifications = await twitter.get_notifications()
             logging.info(f"Simulated human: checked notifications, got {len(notifications)} items.")
         elif action == "like":
-            tweets = await twitter.client.search_tweet('NIKKE', 'Latest', count=1)
+            tweets = await twitter.search_tweet('NIKKE', limit=1)
             tweet = next(iter(tweets), None)
             if tweet:
-                await twitter.client.favorite_tweet(tweet.id)
+                await twitter.like_tweet(tweet)
                 logging.info(f"Simulated human: liked tweet {tweet.id}.")
         elif action == "search":
-            await twitter.client.search_tweet('NIKKE', 'Latest', count=1)
+            await twitter.search_tweet('NIKKE', limit=1)
             logging.info("Simulated human: performed a search.")
     except Exception as e:
         logging.warning(f"Human-like activity failed: {e}")
-
+"""
 @bot.event
 async def on_ready():
     await bot.tree.sync()
@@ -138,7 +139,7 @@ async def on_ready():
 
     check_tweets.start()
     change_status.start()
-    human_like_activity.start()  # Start the human-like activity loop
+    #human_like_activity.start() 
 
 async def random_sleep(min_seconds=120, max_seconds=300): # 120 300
     await asyncio.sleep(random.randint(min_seconds, max_seconds))
@@ -147,9 +148,9 @@ async def random_sleep(min_seconds=120, max_seconds=300): # 120 300
 async def check_tweets():
     global last_tweet_url, sent_tweet_ids, tweet_message_map
     channel = bot.get_channel(DISCORD_CHANNEL_ID)
-    await random_sleep()  # Sleep 2-3 minutes randomly before each poll
+    await random_sleep()
     try:
-        tweets = await twitter.get_recent_tweets(TRACKED_USER_ID, count=3)
+        tweets = await twitter.get_user_tweets(TRACKED_USER_ID, limit=3)
         if not tweets:
             logging.info("No recent tweets found.")
             return
@@ -165,6 +166,8 @@ async def check_tweets():
         # Find tweets that haven't been sent yet, stop at first already sent
         tweets_to_send = []
         for tweet in tweets:
+            if not hasattr(tweet, "id"):
+                continue
             tweet_id = str(tweet.id)
             if tweet_id in sent_ids:
                 break
@@ -172,7 +175,7 @@ async def check_tweets():
 
         # Send new tweets in order from oldest to newest
         for tweet in reversed(tweets_to_send):
-            tweet_url = f"https://vxtwitter.com/{tweet.user.screen_name}/status/{tweet.id}"
+            tweet_url = f"https://vxtwitter.com/{tweet.author.username}/status/{tweet.id}"
             msg = await channel.send(tweet_url)
             logging.info(f"Sent tweet {tweet.id} to channel {channel.id} as message {msg.id}")
     except Exception as e:

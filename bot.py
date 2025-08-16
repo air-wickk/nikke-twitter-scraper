@@ -141,7 +141,7 @@ async def on_ready():
     change_status.start()
     #human_like_activity.start() 
 
-async def random_sleep(min_seconds=120, max_seconds=300): # 120 300
+async def random_sleep(min_seconds=60, max_seconds=120): # 120 300
     await asyncio.sleep(random.randint(min_seconds, max_seconds))
 
 @tasks.loop(seconds=1)
@@ -151,9 +151,9 @@ async def check_tweets():
     await random_sleep()
     try:
         tweets = await twitter.get_user_tweets(TRACKED_USER_ID, limit=3)
-        logging.info(f"Fetched {len(tweets)} tweets: {[getattr(t, 'id', None) for t in tweets]}")
+        # logging.info(f"Fetched {len(tweets)} tweets: {[getattr(t, 'id', None) for t in tweets]}")
         if not tweets:
-            logging.info("No recent tweets found.")
+            # logging.info("No recent tweets found.")
             return
 
         # Gather sent tweet IDs from recent bot messages in Discord
@@ -163,26 +163,28 @@ async def check_tweets():
                 parts = msg.content.strip().split("/")
                 if parts and parts[-1].isdigit():
                     sent_ids.add(parts[-1])
-        logging.info(f"Sent tweet IDs found: {sent_ids}")
+        # logging.info(f"Sent tweet IDs found: {sent_ids}")
 
         # Find tweets that haven't been sent yet, stop at first already sent
         tweets_to_send = []
         for tweet in tweets:
-            if not hasattr(tweet, "id"):
-                logging.info(f"Skipping non-tweet object: {tweet}")
-                continue
-            tweet_id = str(tweet.id)
-            if tweet_id in sent_ids:
-                logging.info(f"Already sent tweet {tweet_id}, skipping.")
-                continue
-            logging.info(f"Will send tweet {tweet_id}")
-            tweets_to_send.append(tweet)
+            # If it's a SelfThread, extract its tweets and send in reverse order
+            if hasattr(tweet, "tweets"):
+                for t in reversed(tweet.tweets):
+                    if hasattr(t, "id"):
+                        tweet_id = str(t.id)
+                        if tweet_id not in sent_ids:
+                            tweets_to_send.append(t)
+            elif hasattr(tweet, "id"):
+                tweet_id = str(tweet.id)
+                if tweet_id not in sent_ids:
+                    tweets_to_send.append(tweet)
 
         # Send new tweets in order from oldest to newest
         for tweet in reversed(tweets_to_send):
-            tweet_url = f"https://cunnyx.com/{tweet.author.username}/status/{tweet.id}"
+            tweet_url = f"https://vxtwitter.com/{tweet.author.username}/status/{tweet.id}"
             msg = await channel.send(tweet_url)
-            logging.info(f"Sent tweet {tweet.id} to channel {channel.id} as message {msg.id}")
+            # logging.info(f"Sent tweet {tweet.id} to channel {channel.id} as message {msg.id}")
     except Exception as e:
         logging.error(f"Error fetching tweets: {e}")
 

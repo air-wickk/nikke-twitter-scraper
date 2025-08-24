@@ -49,6 +49,7 @@ load_dotenv()
 DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 DISCORD_CHANNEL_ID = int(os.getenv("DISCORD_CHANNEL_ID"))
 TRACKED_USER_ID = os.getenv("TRACKED_USER_ID")
+GUILD_ID = int(os.getenv("GUILD_ID"))  # Add this to your .env
 
 intents = discord.Intents.default()
 intents.messages = True
@@ -127,8 +128,11 @@ async def human_like_activity():
 """
 @bot.event
 async def on_ready():
-    await bot.tree.sync()
     print(f"Logged in as {bot.user}")
+    guild = discord.Object(id=GUILD_ID)
+    # Sync commands only to your guild
+    await bot.tree.sync(guild=guild)
+    print(f"Synced commands to guild {GUILD_ID}")
 
     # Load cogs (only once)
     if not hasattr(bot, "cogs_loaded"):
@@ -141,7 +145,7 @@ async def on_ready():
     change_status.start()
     #human_like_activity.start() 
 
-async def random_sleep(min_seconds=60, max_seconds=120): # 120 300
+async def random_sleep(min_seconds=30, max_seconds=90): # 120 300
     await asyncio.sleep(random.randint(min_seconds, max_seconds))
 
 @tasks.loop(seconds=1)
@@ -168,7 +172,7 @@ async def check_tweets():
         # Find tweets that haven't been sent yet, stop at first already sent
         tweets_to_send = []
         for tweet in tweets:
-            # If it's a SelfThread, extract its tweets and send in reverse order
+            # Send in reverse order
             if hasattr(tweet, "tweets"):
                 for t in reversed(tweet.tweets):
                     if hasattr(t, "id"):
@@ -179,6 +183,20 @@ async def check_tweets():
                 tweet_id = str(tweet.id)
                 if tweet_id not in sent_ids:
                     tweets_to_send.append(tweet)
+            # Handle tweets with a card or quoted_status
+            elif hasattr(tweet, "card"):
+                card = tweet.card
+                # If the card has a tweet id, send it
+                if hasattr(card, "id"):
+                    tweet_id = str(card.id)
+                    if tweet_id not in sent_ids:
+                        tweets_to_send.append(card)
+            elif hasattr(tweet, "quoted_status"):
+                quoted = tweet.quoted_status
+                if hasattr(quoted, "id"):
+                    tweet_id = str(quoted.id)
+                    if tweet_id not in sent_ids:
+                        tweets_to_send.append(quoted)
 
         # Send new tweets in order from oldest to newest
         for tweet in reversed(tweets_to_send):

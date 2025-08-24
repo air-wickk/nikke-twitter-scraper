@@ -49,6 +49,7 @@ load_dotenv()
 DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 DISCORD_CHANNEL_ID = int(os.getenv("DISCORD_CHANNEL_ID"))
 TRACKED_USER_ID = os.getenv("TRACKED_USER_ID")
+GUILD_ID = int(os.getenv("GUILD_ID"))  # Add this to your .env
 
 intents = discord.Intents.default()
 intents.messages = True
@@ -127,8 +128,11 @@ async def human_like_activity():
 """
 @bot.event
 async def on_ready():
-    await bot.tree.sync()
     print(f"Logged in as {bot.user}")
+    guild = discord.Object(id=GUILD_ID)
+    # Sync commands only to your guild
+    await bot.tree.sync(guild=guild)
+    print(f"Synced commands to guild {GUILD_ID}")
 
     # Load cogs (only once)
     if not hasattr(bot, "cogs_loaded"):

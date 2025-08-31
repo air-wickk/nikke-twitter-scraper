@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 
-# Example mapping of games to join codes
+# Mapping of games to join codes
 GAME_CODES = {
     "NIKKE: Goddess of Victory": "26282",
     "Azur Lane": "67120761",

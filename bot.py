@@ -95,37 +95,6 @@ async def change_status():
     status = random.choice(shifty_statuses)
     await bot.change_presence(activity=Activity(type=ActivityType.watching, name=status))
 
-"""
-async def random_human_sleep():
-    # Wait between 15 and 40 minutes between "human" actions
-    await asyncio.sleep(random.randint(900, 2400))
-
-@tasks.loop(seconds=10)
-async def human_like_activity():
-    await random_human_sleep()
-    try:
-        action = random.choice(["bookmark", "notifications", "like", "search"])
-        if action == "bookmark":
-            tweets = await twitter.search_tweet('NIKKE', limit=1)
-            tweet = next(iter(tweets), None)
-            if tweet:
-                await twitter.bookmark_tweet(tweet)
-                logging.info(f"Simulated human: bookmarked tweet {tweet.id}.")
-        elif action == "notifications":
-            notifications = await twitter.get_notifications()
-            logging.info(f"Simulated human: checked notifications, got {len(notifications)} items.")
-        elif action == "like":
-            tweets = await twitter.search_tweet('NIKKE', limit=1)
-            tweet = next(iter(tweets), None)
-            if tweet:
-                await twitter.like_tweet(tweet)
-                logging.info(f"Simulated human: liked tweet {tweet.id}.")
-        elif action == "search":
-            await twitter.search_tweet('NIKKE', limit=1)
-            logging.info("Simulated human: performed a search.")
-    except Exception as e:
-        logging.warning(f"Human-like activity failed: {e}")
-"""
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user}")
@@ -139,6 +108,7 @@ async def on_ready():
         await bot.load_extension("suggestions")
         await bot.load_extension("ownersync")
         await bot.load_extension("joincode")
+        await bot.load_extension("createrole")
         bot.cogs_loaded = True
 
     check_tweets.start()

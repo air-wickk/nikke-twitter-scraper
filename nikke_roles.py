@@ -4,21 +4,21 @@ from discord import app_commands
 
 NIKKE_LIST = [
     # Elysion Burst 1
+    {"name": "Anchor", "manufacturer": "Elysion", "burst": 1},
     {"name": "Emma", "manufacturer": "Elysion", "burst": 1},
     {"name": "Miranda", "manufacturer": "Elysion", "burst": 1},
+    {"name": "Neon", "manufacturer": "Elysion", "burst": 1},
     {"name": "Sora", "manufacturer": "Elysion", "burst": 1},
     {"name": "Zwei", "manufacturer": "Elysion", "burst": 1},
-    {"name": "Anchor", "manufacturer": "Elysion", "burst": 1},
-    {"name": "Neon", "manufacturer": "Elysion", "burst": 1},
     # Elysion Burst 2
     {"name": "Arcana", "manufacturer": "Elysion", "burst": 2},
+    {"name": "Delta", "manufacturer": "Elysion", "burst": 2},
     {"name": "Diesel", "manufacturer": "Elysion", "burst": 2},
     {"name": "Eunhwa", "manufacturer": "Elysion", "burst": 2},
     {"name": "Marciana", "manufacturer": "Elysion", "burst": 2},
     {"name": "Mast", "manufacturer": "Elysion", "burst": 2},
     {"name": "Poli", "manufacturer": "Elysion", "burst": 2},
     {"name": "Signal", "manufacturer": "Elysion", "burst": 2},
-    {"name": "Delta", "manufacturer": "Elysion", "burst": 2},
     # Elysion Burst 3
     {"name": "Brid", "manufacturer": "Elysion", "burst": 3},
     {"name": "D", "manufacturer": "Elysion", "burst": 3},
@@ -62,14 +62,15 @@ NIKKE_LIST = [
     {"name": "Laplace", "manufacturer": "Missilis", "burst": 3},
     {"name": "Mana", "manufacturer": "Missilis", "burst": 3},
     {"name": "Maxwell", "manufacturer": "Missilis", "burst": 3},
-    {"name": "Trony", "manufacturer": "Missilis", "burst": 3},
     {"name": "Mihara", "manufacturer": "Missilis", "burst": 3},
+    {"name": "Trony", "manufacturer": "Missilis", "burst": 3},
     # Tetra Burst 1
     {"name": "Cocoa", "manufacturer": "Tetra", "burst": 1},
     {"name": "Exia", "manufacturer": "Tetra", "burst": 1},
     {"name": "Frima", "manufacturer": "Tetra", "burst": 1},
     {"name": "Ludmilla", "manufacturer": "Tetra", "burst": 1},
     {"name": "Mary", "manufacturer": "Tetra", "burst": 1},
+    {"name": "Mica", "manufacturer": "Tetra", "burst": 1},
     {"name": "Milk", "manufacturer": "Tetra", "burst": 1},
     {"name": "Moran", "manufacturer": "Tetra", "burst": 1},
     {"name": "Noise", "manufacturer": "Tetra", "burst": 1},
@@ -81,11 +82,12 @@ NIKKE_LIST = [
     {"name": "Soda", "manufacturer": "Tetra", "burst": 1},
     {"name": "Volume", "manufacturer": "Tetra", "burst": 1},
     {"name": "Yan", "manufacturer": "Tetra", "burst": 1},
-    {"name": "Mica", "manufacturer": "Tetra", "burst": 1},
     # Tetra Burst 2
     {"name": "Ade", "manufacturer": "Tetra", "burst": 2},
+    {"name": "Anis", "manufacturer": "Tetra", "burst": 2},
     {"name": "Aria", "manufacturer": "Tetra", "burst": 2},
     {"name": "Bay", "manufacturer": "Tetra", "burst": 2},
+    {"name": "Belorta", "manufacturer": "Tetra", "burst": 2},
     {"name": "Biscuit", "manufacturer": "Tetra", "burst": 2},
     {"name": "Blanc", "manufacturer": "Tetra", "burst": 2},
     {"name": "Clay", "manufacturer": "Tetra", "burst": 2},
@@ -97,15 +99,13 @@ NIKKE_LIST = [
     {"name": "Novel", "manufacturer": "Tetra", "burst": 2},
     {"name": "Rupee", "manufacturer": "Tetra", "burst": 2},
     {"name": "Viper", "manufacturer": "Tetra", "burst": 2},
-    {"name": "Anis", "manufacturer": "Tetra", "burst": 2},
-    {"name": "Belorta", "manufacturer": "Tetra", "burst": 2},
     # Tetra Burst 3
     {"name": "Alice", "manufacturer": "Tetra", "burst": 3},
     {"name": "Bready", "manufacturer": "Tetra", "burst": 3},
+    {"name": "Neve", "manufacturer": "Tetra", "burst": 3},
     {"name": "Noir", "manufacturer": "Tetra", "burst": 3},
     {"name": "Sugar", "manufacturer": "Tetra", "burst": 3},
     {"name": "Yulha", "manufacturer": "Tetra", "burst": 3},
-    {"name": "Neve", "manufacturer": "Tetra", "burst": 3},
     # Pilgrim Burst 1
     {"name": "Dorothy", "manufacturer": "Pilgrim", "burst": 1},
     {"name": "Little Mermaid", "manufacturer": "Pilgrim", "burst": 1},
@@ -242,18 +242,38 @@ NIKKE_ROLE_INFO = {
     "Snow White": {"color": "#f3f0f5", "role_name": "Snow White"},
 }
 
-MANUFACTURERS = sorted(set(n["manufacturer"] for n in NIKKE_LIST))
+_manufacturers = set(n["manufacturer"] for n in NIKKE_LIST)
+MANUFACTURERS = sorted([m for m in _manufacturers if m != "Pilgrim"]) + (["Pilgrim"] if "Pilgrim" in _manufacturers else [])
 BURST_NUMBERS = [1, 2, 3]
 
 class ManufacturerSelect(discord.ui.Select):
     def __init__(self):
-        options = [discord.SelectOption(label=m, value=m) for m in MANUFACTURERS]
+        manufacturer_emojis = {
+            "Missilis": "<:Missilis_Icon:1412191377407737885>",
+            "Pilgrim": "<:Pilgrim_Icon:1412191367299469424>",
+            "Elysion": "<:Elysion_Icon:1412191358977970236>",
+            "Tetra": "<:Tetra_Icon:1412191349087797450>"
+        }
+        options = [
+            discord.SelectOption(label=m, value=m, emoji=manufacturer_emojis.get(m, None))
+            for m in MANUFACTURERS
+        ]
         super().__init__(placeholder="Choose a manufacturer...", min_values=1, max_values=1, options=options)
 
     async def callback(self, interaction: discord.Interaction):
         manufacturer = self.values[0]
+        manufacturer_emojis = {
+            "Missilis": "<:Missilis_Icon:1412191377407737885>",
+            "Pilgrim": "<:Pilgrim_Icon:1412191367299469424>",
+            "Elysion": "<:Elysion_Icon:1412191358977970236>",
+            "Tetra": "<:Tetra_Icon:1412191349087797450>"
+        }
+        emoji = manufacturer_emojis.get(manufacturer, "")
         view = BurstSelectView(manufacturer)
-        await interaction.response.edit_message(content=f"Selected manufacturer: **{manufacturer}**\nNow choose burst number:", view=view)
+        await interaction.response.edit_message(
+            content=f"Selected manufacturer: {emoji} **{manufacturer}**\nNow choose burst number:",
+            view=view
+        )
 
 class ManufacturerSelectView(discord.ui.View):
     def __init__(self):
@@ -262,14 +282,38 @@ class ManufacturerSelectView(discord.ui.View):
 
 class BurstSelect(discord.ui.Select):
     def __init__(self, manufacturer):
-        options = [discord.SelectOption(label=f"Burst {b}", value=str(b)) for b in BURST_NUMBERS]
+        burst_emojis = {
+            1: "<:Burst1:1412193379865071626>",
+            2: "<:Burst2:1412193388748476478>",
+            3: "<:Burst3:1412193401889361942>"
+        }
+        options = [
+            discord.SelectOption(label=f"Burst {b}", value=str(b), emoji=burst_emojis.get(b, None))
+            for b in BURST_NUMBERS
+        ]
         super().__init__(placeholder="Choose burst number...", min_values=1, max_values=1, options=options)
         self.manufacturer = manufacturer
 
     async def callback(self, interaction: discord.Interaction):
         burst = int(self.values[0])
+        burst_emojis = {
+            1: "<:Burst1:1412193379865071626>",
+            2: "<:Burst2:1412193388748476478>",
+            3: "<:Burst3:1412193401889361942>"
+        }
+        manufacturer_emojis = {
+            "Missilis": "<:Missilis_Icon:1412191377407737885>",
+            "Pilgrim": "<:Pilgrim_Icon:1412191367299469424>",
+            "Elysion": "<:Elysion_Icon:1412191358977970236>",
+            "Tetra": "<:Tetra_Icon:1412191349087797450>"
+        }
+        burst_emoji = burst_emojis.get(burst, "")
+        manufacturer_emoji = manufacturer_emojis.get(self.manufacturer, "")
         view = NikkeSelectView(self.manufacturer, burst)
-        await interaction.response.edit_message(content=f"Manufacturer: **{self.manufacturer}**\nBurst: **{burst}**\nNow choose your Nikke:", view=view)
+        await interaction.response.edit_message(
+            content=f"Manufacturer: {manufacturer_emoji} **{self.manufacturer}**\nBurst: {burst_emoji} **{burst}**\nNow choose your NIKKE:",
+            view=view
+        )
 
 class BurstSelectView(discord.ui.View):
     def __init__(self, manufacturer):
@@ -281,15 +325,15 @@ class NikkeSelect(discord.ui.Select):
         filtered = [n for n in NIKKE_LIST if n["manufacturer"] == manufacturer and n["burst"] == burst]
         options = [discord.SelectOption(label=n["name"], value=n["name"]) for n in filtered]
         if not options:
-            options = [discord.SelectOption(label="No Nikkes found", value="none", default=True)]
-        super().__init__(placeholder="Choose your Nikke...", min_values=1, max_values=1, options=options)
+            options = [discord.SelectOption(label="No NIKKEs found", value="none", default=True)]
+        super().__init__(placeholder="Choose your NIKKE...", min_values=1, max_values=1, options=options)
         self.manufacturer = manufacturer
         self.burst = burst
 
     async def callback(self, interaction: discord.Interaction):
         nikke_name = self.values[0]
         if nikke_name == "none":
-            await interaction.response.send_message("No Nikkes found for this filter.", ephemeral=True)
+            await interaction.response.send_message("No NIKKEs found for this filter.", ephemeral=True)
             return
         guild = interaction.guild
         member = interaction.user

@@ -172,7 +172,7 @@ NIKKE_ROLE_INFO = {
     "Naga": {"color": "#59588d", "role_name": "Naga"},
     "Quency": {"color": "#f59394", "role_name": "Quency"},
     "Sin": {"color": "#bf64ed", "role_name": "Sin"},
-    "Trina": {"color": "#d9efed", "role_name": "Trina"},
+    "Trina": {"color": "#c4f0e5", "role_name": "Trina"},
     "Yuni": {"color": "#fce1ec", "role_name": "Yuni"},
     "Crow": {"color": "#f7746b", "role_name": "Crow"},
     "Drake": {"color": "#e45b70", "role_name": "Drake"},
@@ -203,7 +203,7 @@ NIKKE_ROLE_INFO = {
     "Volume": {"color": "#e1635e", "role_name": "Volume"},
     "Yan": {"color": "#b09e9c", "role_name": "Yan"},
     "Mica": {"color": "#c85945", "role_name": "Mica"},
-    "Ade": {"color": "#a9af54", "role_name": "Ade"},
+    "Ade": {"color": "#83ba6d", "role_name": "Ade"},
     "Aria": {"color": "#989492", "role_name": "Aria"},
     "Bay": {"color": "#f35868", "role_name": "Bay"},
     "Biscuit": {"color": "#d8a010", "role_name": "Biscuit"},
@@ -346,13 +346,19 @@ class NikkeSelect(discord.ui.Select):
         else:
             role_color = discord.Color(0xFFFFFF)
 
+        role = discord.utils.get(guild.roles, name=role_name)
+        if role and role in member.roles:
+            # User already has the role, remove it
+            await member.remove_roles(role)
+            await interaction.response.send_message(f"**{role_name}** has been removed from your roles!", ephemeral=True)
+            return
+
         # Remove any existing Nikke character roles before assigning new one
         nikke_role_names = set(NIKKE_ROLE_INFO.keys())
         roles_to_remove = [r for r in member.roles if r.name in nikke_role_names]
         if roles_to_remove:
             await member.remove_roles(*roles_to_remove)
 
-        role = discord.utils.get(guild.roles, name=role_name)
         if not role:
             role = await guild.create_role(name=role_name, color=role_color, mentionable=False)
             try:

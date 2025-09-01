@@ -109,6 +109,7 @@ async def on_ready():
         await bot.load_extension("ownersync")
         await bot.load_extension("joincode")
         await bot.load_extension("createrole")
+        await bot.load_extension("nikke_roles")
         bot.cogs_loaded = True
 
     check_tweets.start()

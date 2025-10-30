@@ -117,6 +117,8 @@ NIKKE_LIST = [
     {"name": "Nihilister", "manufacturer": "Pilgrim", "burst": 2},
     {"name": "Noah", "manufacturer": "Pilgrim", "burst": 2},
     {"name": "Red Hood", "manufacturer": "Pilgrim", "burst": 2},
+    {"name": "Nayuta", "manufacturer": "Pilgrim", "burst": 2},
+    {"name": "Chime", "manufacturer": "Pilgrim", "burst": 2},
     # Pilgrim Burst 3
     {"name": "Cinderella", "manufacturer": "Pilgrim", "burst": 3},
     {"name": "Harran", "manufacturer": "Pilgrim", "burst": 3},
@@ -125,6 +127,7 @@ NIKKE_LIST = [
     {"name": "Red Hood", "manufacturer": "Pilgrim", "burst": 3},
     {"name": "Scarlet", "manufacturer": "Pilgrim", "burst": 3},
     {"name": "Snow White", "manufacturer": "Pilgrim", "burst": 3},
+    {"name": "Liberalio", "manufacturer": "Pilgrim", "burst": 3},
 ]
 
 NIKKE_ROLE_INFO = {
@@ -240,6 +243,9 @@ NIKKE_ROLE_INFO = {
     "Red Hood": {"color": "#f01e22", "role_name": "Red Hood"},
     "Scarlet": {"color": "#8e71c0", "role_name": "Scarlet"},
     "Snow White": {"color": "#f3f0f5", "role_name": "Snow White"},
+    "Nayuta": {"color": "#adb1d7", "role_name": "Nayuta"},
+    "Liberalio": {"color": "#b59fce", "role_name": "Liberalio"},
+    "Chime": {"color": "#fbd503", "role_name": "Chime"},
 }
 
 _manufacturers = set(n["manufacturer"] for n in NIKKE_LIST)

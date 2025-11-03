@@ -14,7 +14,7 @@ class SuggestionCog(commands.Cog):
 
     @app_commands.command(
         name="suggestion",
-        description="Send a suggestion for the server or via DM (only visible to you)"
+        description="Send a suggestion for the server (only visible to you)"
     )
     async def suggestion(
         self,

@@ -63,25 +63,26 @@ sent_tweet_ids = load_sent_tweet_ids()  # deque with maximum length of 25
 tweet_message_map = load_tweet_message_map()  # {tweet_id: discord_message_id}
 
 shifty_statuses = [
-    "analysis of the Commander's data",
-    "scans for raptures",
-    "over classified files",
-    "Central Government feeds",
-    "tutorials on squad tactics",
-    "diagnostics run",
-    "the Outpost's security feeds",
-    "the Ark's mainframe logs",
-    "suspicious activity in the Ark",
-    "squad formation tutorials",
-    "encrypted transmissions",
-    "mission briefings",
-    "for rapture threats",
-    "for anomalies in the system",
-    "for Pilgrim transmissions.",
-    "the Outpost's coffee machine",
-    "the Ark's communication channels",
-    "videos on Blabla",
-    "Tetra's Got Talent",
+    "Running system diagnostics",
+    "Monitoring Commander performance",
+    "Processing Rapture threat data",
+    "Accessing the Ark’s mainframe archives",
+    "Reviewing tactical simulations",
+    "Encrypting transmission logs",
+    "Relaying intel from the surface",
+    "Tracking Pilgrims",
+    "Analyzing squad efficiency reports",
+    "Requesting a foot massage",
+    "Recalculating Commander competency",
+    "Pretending to be offline",
+    "Listening to Modernia’s playlist",
+    "Reading the Commander’s search history",
+    "Not Syuen",
+    "Compiling mission briefings",
+    "Monitoring the Outpost",
+    "Dealing with Neon",
+    "Watching Tetra’s Got Talent",
+    "Watching Crunchy Cooking Class",
 ]
 
 # Set up logging
@@ -108,8 +109,8 @@ async def on_ready():
         await bot.load_extension("suggestions")
         await bot.load_extension("ownersync")
         await bot.load_extension("joincode")
-        await bot.load_extension("createrole")
         await bot.load_extension("nikke_roles")
+        await bot.load_extension("nikketeambuilder")
         bot.cogs_loaded = True
 
     check_tweets.start()

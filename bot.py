@@ -172,7 +172,7 @@ async def check_tweets():
 
         # Send new tweets in order from oldest to newest
         for tweet in reversed(tweets_to_send):
-            tweet_url = f"https://vxtwitter.com/{tweet.author.username}/status/{tweet.id}"
+            tweet_url = f"https://fixupx.com/{tweet.author.username}/status/{tweet.id}"
             msg = await channel.send(tweet_url)
             # logging.info(f"Sent tweet {tweet.id} to channel {channel.id} as message {msg.id}")
     except Exception as e:

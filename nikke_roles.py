@@ -6,6 +6,7 @@ NIKKE_LIST = [
     # Elysion Burst 1
     {"name": "Anchor", "manufacturer": "Elysion", "burst": 1},
     {"name": "Emma", "manufacturer": "Elysion", "burst": 1},
+    {"name": "Label", "manufacturer": "Elysion", "burst": 1},
     {"name": "Miranda", "manufacturer": "Elysion", "burst": 1},
     {"name": "Neon", "manufacturer": "Elysion", "burst": 1},
     {"name": "Sora", "manufacturer": "Elysion", "burst": 1},
@@ -98,6 +99,7 @@ NIKKE_LIST = [
     {"name": "Nero", "manufacturer": "Tetra", "burst": 2},
     {"name": "Novel", "manufacturer": "Tetra", "burst": 2},
     {"name": "Rupee", "manufacturer": "Tetra", "burst": 2},
+    {"name": "Velvet", "manufacturer": "Tetra", "burst": 2},
     {"name": "Viper", "manufacturer": "Tetra", "burst": 2},
     # Tetra Burst 3
     {"name": "Alice", "manufacturer": "Tetra", "burst": 3},
@@ -158,6 +160,7 @@ NIKKE_ROLE_INFO = {
     "Soline": {"color": "#d9c3c4", "role_name": "Soline"},
     "Vesti": {"color": "#e3200d", "role_name": "Vesti"},
     "Rapi": {"color": "#ff535a", "role_name": "Rapi"},
+    "Label": {"color": "#8054b7", "role_name": "Label"},
     # Missilis
     "Jackal": {"color": "#e1a6d7", "role_name": "Jackal"},
     "Liter": {"color": "#ecdb6d", "role_name": "Liter"},
@@ -228,6 +231,7 @@ NIKKE_ROLE_INFO = {
     "Sugar": {"color": "#bf7489", "role_name": "Sugar"},
     "Yulha": {"color": "#ce3f58", "role_name": "Yulha"},
     "Neve": {"color": "#b2adcb", "role_name": "Neve"},
+    "Velvet": {"color": "#f8b0cf", "role_name": "Velvet"},
     # Pilgrim
     "Dorothy": {"color": "#e080a7", "role_name": "Dorothy"},
     "Little Mermaid": {"color": "#6cd3c2", "role_name": "Little Mermaid"},

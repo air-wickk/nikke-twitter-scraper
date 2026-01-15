@@ -6,6 +6,7 @@ NIKKE_LIST = [
     # Elysion Burst 1
     {"name": "Anchor", "manufacturer": "Elysion", "burst": 1},
     {"name": "Emma", "manufacturer": "Elysion", "burst": 1},
+    {"name": "Label", "manufacturer": "Elysion", "burst": 1},
     {"name": "Miranda", "manufacturer": "Elysion", "burst": 1},
     {"name": "Neon", "manufacturer": "Elysion", "burst": 1},
     {"name": "Sora", "manufacturer": "Elysion", "burst": 1},
@@ -158,6 +159,7 @@ NIKKE_ROLE_INFO = {
     "Soline": {"color": "#d9c3c4", "role_name": "Soline"},
     "Vesti": {"color": "#e3200d", "role_name": "Vesti"},
     "Rapi": {"color": "#ff535a", "role_name": "Rapi"},
+    "Label": {"color": "#8054b7", "role_name": "Label"},
     # Missilis
     "Jackal": {"color": "#e1a6d7", "role_name": "Jackal"},
     "Liter": {"color": "#ecdb6d", "role_name": "Liter"},

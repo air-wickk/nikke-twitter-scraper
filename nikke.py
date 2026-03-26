@@ -95,13 +95,12 @@ async def fetch_prydwen_index():
         print(f"Loaded {len(PRYDWEN_CHARACTERS)} characters from Prydwen.")
     except KeyError as e:
         print(f"Error parsing Prydwen index: {e}")
-        PRYDWEN_CHARACTERS = []
+        PRYDWEN_CHARACTERS = [] 
 
 
 # -------------------- FETCH CHARACTER -------------------- #
 async def fetch_prydwen_character(slug):
     url = PRYDWEN_BASE.format(slug=slug)
-
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as resp:
             if resp.status != 200:

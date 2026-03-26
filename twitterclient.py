@@ -17,12 +17,19 @@ class TwitterClient:
         if self.logged_in:
             return
         try:
-            await self.client.sign_in(self.username, self.password)
+            # Try to use existing session first
+            await self.client.connect()
             self.logged_in = True
+            print("Connected using existing session")
         except Exception as e:
-            print(f"Login failed or extra action required: {e}")
-            # Optionally prompt for extra info here if you want
-            self.logged_in = False
+            print(f"Existing session failed, signing in fresh: {e}")
+            try:
+                await self.client.sign_in(self.username, self.password)
+                self.logged_in = True
+                print("Fresh login successful")
+            except Exception as signin_error:
+                print(f"Login failed: {signin_error}")
+                self.logged_in = False
 
     async def search_tweet(self, query, limit=1):
         await self.login()

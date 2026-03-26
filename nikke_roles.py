@@ -23,6 +23,7 @@ NIKKE_LIST = [
     # Elysion Burst 3
     {"name": "Brid", "manufacturer": "Elysion", "burst": 3},
     {"name": "D", "manufacturer": "Elysion", "burst": 3},
+    {"name": "E.H.", "manufacturer": "Elysion", "burst": 3},
     {"name": "Guillotine", "manufacturer": "Elysion", "burst": 3},
     {"name": "Helm", "manufacturer": "Elysion", "burst": 3},
     {"name": "K", "manufacturer": "Elysion", "burst": 3},
@@ -134,6 +135,7 @@ NIKKE_LIST = [
 
 NIKKE_ROLE_INFO = {
     # Elysion
+    "E.H.": {"color": "#c55875", "role_name": "E.H."},
     "Emma": {"color": "#b63734", "role_name": "Emma"},
     "Miranda": {"color": "#707286", "role_name": "Miranda"},
     "Sora": {"color": "#bdc2f7", "role_name": "Sora"},

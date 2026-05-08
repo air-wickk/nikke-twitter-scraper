@@ -183,40 +183,20 @@ async def build_character_embeds(char):
 
     embed1.add_field(name="Burst Type", value=f"{burst_emoji} Burst {burst}", inline=True)
     embed1.add_field(name="Manufacturer", value=f"{manufacturer_emoji} {manufacturer}", inline=True)
-    embed1.add_field(name="Element", value=f"{element_emoji} {element}", inline=True)
-
-    # add the character image
-    image_url = None
+    # add the character thumbnail
+    thumbnail_url = None
     try:
-        image_url = char.get("fullImage", {}).get("localFile", {}).get("childImageSharp", {}).get("gatsbyImageData", {}).get("images", {}).get("fallback", {}).get("src")
+        thumbnail_url = char.get("smallImage", {}).get("localFile", {}).get("childImageSharp", {}).get("gatsbyImageData", {}).get("images", {}).get("fallback", {}).get("src")
     except (AttributeError, TypeError):
-        image_url = None
+        thumbnail_url = None
     
-    if image_url:
-        if image_url.startswith("/"):
-            image_url = f"{BASE_IMAGE_URL}{image_url}"
-        if is_valid_url(image_url):
-            embed1.set_image(url=image_url)
+    if thumbnail_url:
+        if thumbnail_url.startswith("/"):
+            thumbnail_url = f"{BASE_IMAGE_URL}{thumbnail_url}"
+        if is_valid_url(thumbnail_url):
+            embed1.set_thumbnail(url=thumbnail_url)
 
     embeds.append(embed1)
-
-    # --- Skills Embed ---
-    embed2 = discord.Embed(
-        title=f"{name} — Skills",
-        color=discord.Color.orange()
-    )
-
-    for skill in char.get("skills", []):
-        skill_name = skill.get("name", "Unknown")
-        skill_slot = skill.get("slot", "N/A")
-        skill_desc = parse_rich_text(skill.get("descriptionLevel10", {}).get("raw", ""))
-        embed2.add_field(
-            name=f"{skill_name} ({skill_slot})",
-            value=skill_desc[:1024] or "No description available.",
-            inline=False
-        )
-
-    embeds.append(embed2)
 
     # --- Guide Embeds ---
     slug = char.get("slug", "")

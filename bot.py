@@ -75,7 +75,7 @@ shifty_statuses = [
     "Requesting a foot massage",
     "Recalculating Commander competency",
     "Pretending to be offline",
-    "Listening to Modernia’s playlist",
+    "Listening to Providence (NIKKE Remix)",
     "Reading the Commander’s search history",
     "Not Syuen",
     "Compiling mission briefings",

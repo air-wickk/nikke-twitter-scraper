@@ -869,7 +869,7 @@ class NikkeCharacterCog(commands.Cog):
         """Wait until the bot is ready before starting the refresh loop."""
         await self.bot.wait_until_ready()
 
-    @app_commands.command(name="nikke", description="View a NIKKE's details")
+    @app_commands.command(name="nikke", description="View a NIKKE's details & build")
     @app_commands.autocomplete(name=character_autocomplete)
     async def character(self, interaction: discord.Interaction, name: str):
         await interaction.response.defer()

@@ -391,7 +391,7 @@ class NikkeRoleCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @app_commands.command(name="nikkerole", description="Select your favorite NIKKE role (only visible to you)")
+    @app_commands.command(name="role", description="Select your favorite NIKKE role (only visible to you)")
     async def nikke(self, interaction: discord.Interaction):
         view = ManufacturerSelectView()
         await interaction.response.send_message("Select your NIKKE's manufacturer:", view=view, ephemeral=True)

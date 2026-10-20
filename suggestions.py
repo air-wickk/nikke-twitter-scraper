@@ -8,6 +8,11 @@ import datetime
 load_dotenv()
 SUGGESTION_CHANNEL_ID = int(os.getenv("SUGGESTION_CHANNEL_ID"))
 
+def _card_view(container):
+    view = discord.ui.LayoutView(timeout=None)
+    view.add_item(container)
+    return view
+
 class SuggestionCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -30,19 +35,20 @@ class SuggestionCog(commands.Cog):
             )
             return
 
-        embed = discord.Embed(
-            title=title,
-            description=description,
-            color=discord.Color(0xb8effc),
+        # CV2 card so suggestion posts match the rest of the bot's output
+        container = discord.ui.Container(accent_color=discord.Color(0xb8effc))
+        header = discord.ui.Section(
+            discord.ui.TextDisplay(f"## {title[:250]}\n-# {interaction.user}"),
+            accessory=discord.ui.Thumbnail(media=interaction.user.display_avatar.url),
         )
-        embed.set_author(
-            name=f"{interaction.user}",
-            icon_url=interaction.user.display_avatar.url
+        container.add_item(header)
+        container.add_item(discord.ui.TextDisplay(description[:4000]))
+        container.add_item(discord.ui.Separator())
+        now = int(datetime.datetime.now(datetime.timezone.utc).timestamp())
+        container.add_item(
+            discord.ui.TextDisplay(f"<@{interaction.user.id}> • <t:{now}:F>")
         )
-        embed.add_field(name="User", value=f"<@{interaction.user.id}>", inline=True)
-        embed.add_field(name="Time", value=f"<t:{int(datetime.datetime.utcnow().timestamp())}:F>", inline=True)
-
-        await suggestion_channel.send(embed=embed)
+        await suggestion_channel.send(view=_card_view(container))
         await interaction.response.send_message(
             "Your feedback has been sent! Thank you for helping improve the server <a:aliceclap:1396972200291995680>",
             ephemeral=True
@@ -54,12 +60,11 @@ class SuggestionCog(commands.Cog):
         if message.guild is None and not message.author.bot:
             # Ignore if message is a slash command (they don't show up as normal messages)
             if not message.content.startswith("/"):
-                now = int(datetime.datetime.utcnow().timestamp())
-                delete_time = now + 60
+                expiry = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=60)
                 msg = await message.channel.send(
-                    f"Hi! You can only submit suggestions using the `/suggestion` command. This message will self-destruct <t:{delete_time}:R>."
+                    f"Hi! You can only submit suggestions using the `/suggestion` command. This message will self-destruct <t:{int(expiry.timestamp())}:R>."
                 )
-                await discord.utils.sleep_until(datetime.datetime.utcfromtimestamp(delete_time))
+                await discord.utils.sleep_until(expiry)
                 await msg.delete()
 
 async def setup(bot):

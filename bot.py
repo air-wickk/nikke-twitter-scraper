@@ -121,6 +121,14 @@ async def on_ready():
 async def random_sleep(min_seconds=30, max_seconds=90): # 120 300
     await asyncio.sleep(random.randint(min_seconds, max_seconds))
 
+def is_reply(tweet):
+    """
+    True if the tweet is a reply to anyone, including the author replying
+    to themselves (a self-thread). tweety's Tweet objects expose this
+    directly as a boolean `is_reply` attribute.
+    """
+    return bool(getattr(tweet, "is_reply", False))
+
 @tasks.loop(seconds=1)
 async def check_tweets():
     global last_tweet_url, sent_tweet_ids, tweet_message_map
@@ -148,11 +156,11 @@ async def check_tweets():
             # Send in reverse order
             if hasattr(tweet, "tweets"):
                 for t in reversed(tweet.tweets):
-                    if hasattr(t, "id"):
+                    if hasattr(t, "id") and not is_reply(t):
                         tweet_id = str(t.id)
                         if tweet_id not in sent_ids:
                             tweets_to_send.append(t)
-            elif hasattr(tweet, "id"):
+            elif hasattr(tweet, "id") and not is_reply(tweet):
                 tweet_id = str(tweet.id)
                 if tweet_id not in sent_ids:
                     tweets_to_send.append(tweet)
@@ -160,13 +168,13 @@ async def check_tweets():
             elif hasattr(tweet, "card"):
                 card = tweet.card
                 # If the card has a tweet id, send it
-                if hasattr(card, "id"):
+                if hasattr(card, "id") and not is_reply(card):
                     tweet_id = str(card.id)
                     if tweet_id not in sent_ids:
                         tweets_to_send.append(card)
             elif hasattr(tweet, "quoted_status"):
                 quoted = tweet.quoted_status
-                if hasattr(quoted, "id"):
+                if hasattr(quoted, "id") and not is_reply(quoted):
                     tweet_id = str(quoted.id)
                     if tweet_id not in sent_ids:
                         tweets_to_send.append(quoted)

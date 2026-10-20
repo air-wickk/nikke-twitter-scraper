@@ -1,33 +1,59 @@
 import discord
 from discord import app_commands
-from discord.ext import commands
+from discord.ext import commands, tasks
 
 import aiohttp
 import io
 from PIL import Image
 
+import nikke
+
 
 TEAM_SIZE = 5
-CHARACTER_API = "https://api.dotgg.gg/nikke/characters"
-CHARACTER_IMG_BASE = "https://static.dotgg.gg/nikke/characters/"
 
 # Global character list
 NIKKE_LIST = []
 
-async def fetch_nikke():
-    """Fetch the list of NIKKE characters from the API and store globally."""
-    global NIKKE_LIST
-    async with aiohttp.ClientSession() as session:
-        async with session.get(CHARACTER_API) as resp:
-            if resp.status == 200:
-                NIKKE_LIST = await resp.json()
+# The roster comes from Prydwen (same source as /nikke), built from the
+# listing page itself (name, burst, element, rarity, card art) so no
+# per-character pages are needed at all.
 
-def get_unique_manufacturers():
-    """Return a sorted list of unique manufacturers from NIKKE_LIST."""
-    manufacturers = set()
-    for character in NIKKE_LIST:
-        manufacturers.add(character.get("manufacturer", "Unknown"))
-    return sorted(manufacturers)
+async def fetch_nikke():
+    """Build the team roster from Prydwen's enriched character index."""
+    global NIKKE_LIST
+
+    try:
+        await nikke.fetch_prydwen_index()
+    except Exception as e:
+        print(f"Prydwen index fetch failed, previous roster retained: {e}")
+        return
+
+    roster = nikke.PRYDWEN_CHARACTERS
+
+    # counter to the old dotgg roster, every entry here is a distinct group
+    # from Prydwen's index, so searching "red hood" no longer offers a
+    # dotgg-era duplicate; alt costumes ("Rupee: Winter Shopper") are
+    # separate units and stay in the list
+    picked = roster
+
+    entries = []
+    for entry in picked:
+        slug = entry["slug"]
+        # cropped head shot, same art the /nikke command uses for thumbnails
+        head_art = f"https://cdn.prydwen.gg/images/nikke/characters/{slug}.webp"
+        entries.append({
+            "name": entry["name"],
+            "url": slug,
+            "img": head_art,
+            "burst": entry.get("burst", ""),
+            "rarity": entry.get("rarity", ""),
+            "element": entry.get("element", ""),
+        })
+
+    if entries:
+        NIKKE_LIST = entries
+        print(f"Loaded {len(NIKKE_LIST)} team characters from Prydwen.")
+
 
 def get_character_by_name(character_name):
     """Return the character dict from NIKKE_LIST by name, or None if not found."""
@@ -36,61 +62,7 @@ def get_character_by_name(character_name):
             return character
     return None
 
-BURST_EMOJIS = {
-    1: "<:Burst1:1412193379865071626>",
-    2: "<:Burst2:1412193388748476478>",
-    3: "<:Burst3:1412193401889361942>",
-    "ALL": "<:BurstAll:1412193411032682576>"
-}
-MANUFACTURER_EMOJIS = {
-    "Missilis": "<:Missilis_Icon:1412191377407737885>",
-    "Pilgrim": "<:Pilgrim_Icon:1412191367299469424>",
-    "Elysion": "<:Elysion_Icon:1412191358977970236>",
-    "Tetra": "<:Tetra_Icon:1412191349087797450>"
-}
-
-def get_burst_emoji(burst):
-    if isinstance(burst, str):
-        if burst.upper() == "ALL" or burst.lower() == "p":
-            return BURST_EMOJIS["ALL"]
-    try:
-        burst_num = int(burst)
-        return BURST_EMOJIS.get(burst_num, "")
-    except Exception:
-        return ""
-
-def get_manufacturer_emoji(manufacturer):
-    return MANUFACTURER_EMOJIS.get(manufacturer, "")
-
 # -------------------- SELECTS -------------------- #
-
-class ManufacturerSelect(discord.ui.Select):
-
-    def __init__(self):
-        # Always get the latest manufacturers from NIKKE_LIST
-        manufacturers = get_unique_manufacturers() if NIKKE_LIST else []
-        manufacturer_options = [
-            discord.SelectOption(label=manufacturer)
-            for manufacturer in manufacturers
-        ]
-        # If no options, add a disabled placeholder
-        if not manufacturer_options:
-            manufacturer_options = [discord.SelectOption(label="No data loaded yet", value="nodata", default=True, description="Try again in a moment", emoji="❌")]
-        super().__init__(placeholder="Choose manufacturer...", min_values=1, max_values=1, options=manufacturer_options)
-
-    async def callback(self, interaction: discord.Interaction):
-        selected_manufacturer = self.values[0]
-        team_select_view = NikkeTeamSelectView(selected_manufacturer)
-        await interaction.response.edit_message(
-            content=f"Manufacturer selected: **{selected_manufacturer}**\nNow select your team:",
-            view=team_select_view
-        )
-
-class ManufacturerSelectView(discord.ui.View):
-    def __init__(self):
-        super().__init__()
-        self.add_item(ManufacturerSelect())
-
 
 # --- Slot-based Team Builder --- #
 class NikkeSearchModal(discord.ui.Modal, title="Search for a NIKKE"):
@@ -175,12 +147,9 @@ def build_team_preview_embed(team_names):
             char = get_character_by_name(name)
             if char:
                 char_name = char.get('name', '?')
-                burst = char.get("burst", "?")
-                manufacturer = char.get("manufacturer", "?")
-                burst_emoji = get_burst_emoji(burst)
-                manufacturer_emoji = get_manufacturer_emoji(manufacturer)
+                element_emoji = nikke.ELEMENT_EMOJIS.get(char.get("element", "?"), "")
                 padded_name = f"**{char_name}**" + " " * (max_name_len - len(char_name))
-                team_lines.append(f"• {burst_emoji} {padded_name} {manufacturer_emoji}")
+                team_lines.append(f"• {element_emoji} {padded_name}")
             else:
                 team_lines.append("• —")
         else:
@@ -192,14 +161,24 @@ def build_team_preview_embed(team_names):
 
 
 # --- Helper functions for team image and embed --- #
+def _character_image_url(char):
+    """Resolve a character entry into an image URL ( Prydwen card art)."""
+    if not char:
+        return None
+    img = char.get("img", "")
+    if not img:
+        return None
+    if img.startswith("http://") or img.startswith("https://"):
+        return img
+    return f"https://cdn.prydwen.gg/images/nikke/characters/{img}.webp"
+
 async def compose_team_image(character_names):
-    from PIL import ImageDraw
+    from PIL import ImageDraw, ImageChops
     character_image_urls = []
     for name in character_names:
-        char = get_character_by_name(name)
-        if char:
-            image_url = CHARACTER_IMG_BASE + char.get("img", "") + ".webp"
-            character_image_urls.append(image_url)
+        url = _character_image_url(get_character_by_name(name))
+        if url:
+            character_image_urls.append(url)
     if len(character_image_urls) != 5:
         return None
     try:
@@ -211,15 +190,26 @@ async def compose_team_image(character_names):
                         img_bytes = await resp.read()
                         img = Image.open(io.BytesIO(img_bytes)).convert("RGBA")
                         images.append(img)
+        # soft, subdued element palettes: real top-to-bottom gradients
+        # (light tint fading into a deeper tone) behind the head crops,
+        # plus muted mid-tones for the tile borders
         element_gradients = {
-            "Fire": [(225, 49, 27, 128), (235, 59, 37, 128)],
-            "Wind": [(28, 236, 166, 128), (38, 246, 176, 128)],
-            "Iron": [(223, 205, 58, 128), (233, 215, 68, 128)],
-            "Electric": [(244, 39, 252, 128), (234, 49, 242, 128)],
-            "Water": [(26, 159, 228, 128), (36, 169, 238, 128)]
+            "Fire": [(233, 128, 104, 140), (152, 52, 40, 190)],
+            "Wind": [(120, 214, 185, 140), (44, 148, 118, 190)],
+            "Iron": [(238, 188, 136, 150), (186, 122, 62, 190)],
+            "Electric": [(238, 148, 242, 140), (162, 84, 176, 190)],
+            "Water": [(118, 178, 222, 140), (56, 116, 176, 190)]
+        }
+        element_colors = {
+            "Fire": (198, 92, 70),
+            "Wind": (74, 178, 150),
+            "Iron": (212, 152, 92),
+            "Electric": (204, 116, 210),
+            "Water": (92, 154, 200)
         }
         bg_size = 432
-        bg_images = []
+        tile_radius = 30
+        tile_gap = 14
         burst_emoji_ids = {
             1: "1412193379865071626",
             2: "1412193388748476478",
@@ -233,6 +223,7 @@ async def compose_team_image(character_names):
                     img_bytes = await resp.read()
                     return Image.open(io.BytesIO(img_bytes)).convert("RGBA")
                 return None
+
         async with aiohttp.ClientSession() as emoji_session:
             emoji_cache = {}
             for idx, img in enumerate(images):
@@ -240,8 +231,8 @@ async def compose_team_image(character_names):
                 char_data = get_character_by_name(char_name)
                 element = char_data.get("element", "") if char_data else ""
                 grad = element_gradients.get(element, [(255,255,255,32),(255,255,255,32)])
-                bg = Image.new("RGBA", (bg_size, bg_size), (0,0,0,0))
-                grad_draw = ImageDraw.Draw(bg)
+                tile = Image.new("RGBA", (bg_size, bg_size), (0,0,0,0))
+                grad_draw = ImageDraw.Draw(tile)
                 for y in range(bg_size):
                     ratio = y / float(bg_size - 1)
                     r = int(grad[0][0] * (1 - ratio) + grad[1][0] * ratio)
@@ -250,7 +241,7 @@ async def compose_team_image(character_names):
                     a = int(grad[0][3] * (1 - ratio) + grad[1][3] * ratio)
                     grad_draw.line([(0, y), (bg_size - 1, y)], fill=(r, g, b, a), width=1)
                 img_resized = img.resize((bg_size, bg_size), Image.LANCZOS)
-                bg.paste(img_resized, (0, 0), img_resized)
+                tile.paste(img_resized, (0, 0), img_resized)
                 burst = char_data.get("burst", "?") if char_data else "?"
                 burst_key = None
                 if isinstance(burst, int):
@@ -267,17 +258,37 @@ async def compose_team_image(character_names):
                 else:
                     emoji_img = emoji_cache[emoji_id]
                 if emoji_img:
-                    emoji_size = int(bg_size * 0.25)  # slightly larger burst icon
+                    emoji_size = int(bg_size * 0.22)
                     emoji_img = emoji_img.resize((emoji_size, emoji_size), Image.LANCZOS)
-                    bg.paste(emoji_img, (8, 8), emoji_img)
-                bg_images.append(bg)
-        total_width = sum(img.size[0] for img in bg_images)
-        max_height = max(img.size[1] for img in bg_images)
-        composite = Image.new("RGBA", (total_width, max_height), (0,0,0,0))
-        x_offset = 0
-        for img in bg_images:
-            composite.paste(img, (x_offset, 0), img)
-            x_offset += img.size[0]
+                    tile.paste(emoji_img, (18, 18), emoji_img)
+
+                # clip everything to a rounded tile, then add the element border
+                corner_mask = Image.new("L", (bg_size, bg_size), 0)
+                ImageDraw.Draw(corner_mask).rounded_rectangle(
+                    [0, 0, bg_size - 1, bg_size - 1], radius=tile_radius, fill=255
+                )
+                tile.putalpha(ImageChops.multiply(tile.getchannel("A"), corner_mask))
+
+                tile_draw = ImageDraw.Draw(tile)
+                border_color = element_colors.get(element, (255, 255, 255))
+                tile_draw.rounded_rectangle(
+                    [2, 2, bg_size - 3, bg_size - 3],
+                    radius=tile_radius,
+                    outline=border_color + (170,),
+                    width=4,
+                )
+                images[idx] = tile
+
+        composite_width = (
+            len(images) * bg_size + (len(images) - 1) * tile_gap + tile_gap * 2
+        )
+        composite_height = bg_size + tile_gap * 2
+        composite = Image.new("RGBA", (composite_width, composite_height), (0,0,0,0))
+
+        x_offset = tile_gap
+        for tile in images:
+            composite.alpha_composite(tile, (x_offset, tile_gap))
+            x_offset += bg_size + tile_gap
         with io.BytesIO() as image_binary:
             composite.save(image_binary, format="PNG")
             image_binary.seek(0)
@@ -285,38 +296,7 @@ async def compose_team_image(character_names):
     except Exception:
         return None
 
-def build_team_embed(title, character_names, image_bytes=None, image_urls=None):
-    embed = discord.Embed(title=title, color=discord.Color.blue())
-    character_fields = []
-    for slot_index, character_name in enumerate(character_names):
-        char = get_character_by_name(character_name)
-        if char:
-            manufacturer = char.get("manufacturer", "?")
-            manufacturer_emoji = get_manufacturer_emoji(manufacturer)
-            character_fields.append((slot_index, character_name, manufacturer_emoji))
-    team_lines = []
-    max_name_len = 0
-    for slot_index, character_name, manufacturer_emoji in character_fields:
-        if len(character_name) > max_name_len:
-            max_name_len = len(character_name)
-    for slot_index, character_name, manufacturer_emoji in character_fields:
-        padded_name = f"**{character_name}**" + " " * (max_name_len - len(character_name))
-        team_lines.append(f"• {manufacturer_emoji} {padded_name}")
-    for idx in range(len(character_fields), TEAM_SIZE):
-        team_lines.append("• —")
-    embed.description = "\n".join(team_lines)
-    if image_bytes:
-        embed.set_image(url="attachment://team.png")
-    elif image_urls and len(image_urls) > 0:
-        embed.set_image(url=image_urls[0])
-        if len(image_urls) > 1:
-            embed.add_field(
-                name="Other Team Members",
-                value="\n".join([f"[Slot {i+1}]({url})" for i, url in enumerate(image_urls)]),
-                inline=False
-            )
-    return embed
-
+# -------------------- FINAL TEAM CARD -------------------- #
 class TeamTitleModal(discord.ui.Modal, title="Team Title"):
     team_title = discord.ui.TextInput(label="Enter a title for your team (optional):", required=False, min_length=0)
 
@@ -328,21 +308,69 @@ class TeamTitleModal(discord.ui.Modal, title="Team Title"):
         await interaction.response.defer()
         user_display_name = interaction.user.display_name if hasattr(interaction.user, 'display_name') else interaction.user.name
         title_value = self.team_title.value.strip() if self.team_title.value else ""
-        embed_title = title_value if title_value else f"{user_display_name}'s NIKKE Team"
+        card_title = title_value if title_value else f"{user_display_name}'s NIKKE Team"
+
         image_bytes = await compose_team_image(self.selected_character_names)
+        gallery_urls = []
+        file = None
         if image_bytes:
             file = discord.File(io.BytesIO(image_bytes), filename="team.png")
-            embed = build_team_embed(embed_title, self.selected_character_names, image_bytes=image_bytes)
-            await interaction.client.get_channel(interaction.channel_id).send(embed=embed, file=file)
+            gallery_urls.append("attachment://team.png")
         else:
-            # fallback: show first character as image, add links for the rest
-            image_urls = []
+            # fallback: show every member's splash, no compositing needed
             for name in self.selected_character_names:
-                char = get_character_by_name(name)
-                if char:
-                    image_urls.append(CHARACTER_IMG_BASE + char.get("img", "") + ".webp")
-            embed = build_team_embed(embed_title, self.selected_character_names, image_urls=image_urls)
-            await interaction.client.get_channel(interaction.channel_id).send(embed=embed)
+                url = _character_image_url(get_character_by_name(name))
+                if url:
+                    gallery_urls.append(url)
+
+        view = TeamCardView(card_title, self.selected_character_names, gallery_urls, byline=user_display_name)
+        channel = interaction.client.get_channel(interaction.channel_id)
+        if file:
+            await channel.send(view=view, file=file)
+        else:
+            await channel.send(view=view)
+
+
+# -------------------- TABBED TEAM CARD -------------------- #
+def _member_lines(character_names):
+    lines = []
+    for name in character_names:
+        char = get_character_by_name(name)
+        if not char:
+            lines.append("• —")
+            continue
+        element_emoji = nikke.ELEMENT_EMOJIS.get(char.get("element", "?"), "")
+        lines.append(f"• {element_emoji} **{char.get('name', '?')}**")
+    return "\n".join(lines)
+
+
+class TeamCardView(discord.ui.LayoutView):
+    def __init__(self, title, character_names, gallery_urls, byline=""):
+        super().__init__(timeout=None)
+
+        container = discord.ui.Container(accent_color=discord.Color.blue())
+
+        header_lines = [f"## {title}"]
+        if byline:
+            header_lines.append(f"-# by {byline}")
+        header = discord.ui.TextDisplay("\n".join(header_lines))
+        splash = gallery_urls[0] if gallery_urls else None
+        # don't reuse the composited banner as both banner and thumbnail
+        if splash and splash.startswith("http"):
+            container.add_item(discord.ui.Section(header, accessory=discord.ui.Thumbnail(media=splash)))
+        else:
+            container.add_item(header)
+
+        if gallery_urls:
+            gallery = discord.ui.MediaGallery(
+                *(discord.MediaGalleryItem(url) for url in gallery_urls[:5])
+            )
+            container.add_item(gallery)
+
+        container.add_item(discord.ui.Separator())
+        container.add_item(discord.ui.TextDisplay(_member_lines(character_names)))
+
+        self.add_item(container)
 
 
 # -------------------- COG -------------------- #
@@ -351,6 +379,16 @@ class NikkeTeamCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         bot.loop.create_task(fetch_nikke())
+        self.refresh_characters.start()
+
+    @tasks.loop(minutes=30)
+    async def refresh_characters(self):
+        """Refresh the roster (picks up new Prydwen-only characters)."""
+        await fetch_nikke()
+
+    @refresh_characters.before_loop
+    async def before_refresh(self):
+        await self.bot.wait_until_ready()
 
     @app_commands.command(name="buildteam", description="Build your NIKKE team")
     async def buildteam(self, interaction: discord.Interaction):

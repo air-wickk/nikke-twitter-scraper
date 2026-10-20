@@ -163,8 +163,38 @@ async def fetch_prydwen_index():
         if not name:
             continue
 
+        # card details shown on the listing tiles come free with the index:
+        # rarity class, burst type + element floating icons, card artwork
+        rarity = ""
+        for cls in card.get("class", []):
+            if cls.startswith("rarity-"):
+                rarity = cls.replace("rarity-", "")
+
+        burst = ""
+        burst_img = card.select_one("span.floating-element:not(.element) img")
+        if burst_img:
+            alt = (burst_img.get("alt") or "")
+            match = re.search(r"(?i)burst type ([\w]+)", alt)
+            if match:
+                burst = BURST_TYPE_MAP.get(match.group(1), match.group(1))
+            elif re.search(r"(?i)type all", alt):
+                burst = "ALL"
+
+        element = ""
+        element_img = card.select_one("span.floating-element.element img")
+        if element_img:
+            alt = (element_img.get("alt") or "")
+            match = re.search(r"(?i)([a-z]+) element", alt)
+            if match:
+                element = match.group(1).capitalize()
+
+        entry = {"name": name, "slug": slug, "rarity": rarity, "element": element, "burst": burst}
+        card_art = (img.get("src") or "").strip() if img else ""
+        if card_art:
+            entry["cardImage"] = card_art
+
         seen_slugs.add(slug)
-        characters.append({"name": name, "slug": slug})
+        characters.append(entry)
 
     if not characters:
         print("Error parsing Prydwen index: no characters found.")
@@ -241,6 +271,9 @@ async def fetch_prydwen_character(slug):
                 if match:
                     char["burstType"] = BURST_TYPE_MAP.get(match.group(1), match.group(1))
                     char["burst"] = previous
+            elif "type all" in alt:
+                # e.g. icon alt "Type All" (burst I/II/III-capable characters)
+                char["burstType"] = "ALL"
             elif "weapon icon" in alt:
                 char["weapon"] = previous
             elif "element icon" in alt:

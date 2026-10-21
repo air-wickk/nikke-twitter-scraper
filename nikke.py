@@ -26,6 +26,36 @@ BROWSER_HEADERS = {
     "Accept-Language": "en-US,en;q=0.9",
 }
 
+# cloudflared hosts block datacenter IPs that use a python TLS fingerprint,
+# so prefer curl_cffi (chrome TLS impersonation) when it is installed
+try:
+    from curl_cffi import requests as _curl_requests
+except ImportError:
+    _curl_requests = None
+
+def _get_html_process(url, timeout=30):
+    headers = BROWSER_HEADERS | {"Referer": "https://www.prydwen.gg/"}
+    opener = (
+        (lambda: _curl_requests.get(url, impersonate="chrome", headers=headers, timeout=timeout))
+        if _curl_requests is not None
+        else (lambda: requests.get(url, headers=headers, timeout=timeout))
+    )
+    last_error = None
+    # a single retry absorbs transient Cloudflare challenges / rate limits
+    for attempt in (0, 1):
+        try:
+            response = opener()
+            response.raise_for_status()
+            return response.text
+        except Exception as e:
+            last_error = e
+            if isinstance(e, requests.HTTPError) and e.response is not None and e.response.status_code in (403, 429):
+                import time
+                time.sleep(5)
+                continue
+            break
+    raise last_error
+
 # map the icon alt text ("Burst Type 2" / "Burst Type III") to the embed key
 BURST_TYPE_MAP = {
     "1": "1", "I": "1",
@@ -89,7 +119,7 @@ CUBE_EMOJIS = {
     "Tempering": "<:c_tempering:1561970865254563940>",
     "Bastion": "<:c_bastion:1561970864185016330>",
     "Resilience": "<:c_resilience:1561970862914011158>",
-    "Endurance": "<:c_endurance:1561970861781684344>",
+    "Endurance": "<:c_endurance:1562601771078000640>",
     "Adjutant": "<:c_adjutant:1561970860674261072>",
     "Quantum": "<:c_quantum:1561970859613098014>",
     "Onslaught": "<:c_onslaught:1561970858212200449>",
@@ -128,9 +158,7 @@ def replace_with_emojis(text):
 # aiohttp is TLS-fingerprinted and blocked by Cloudflare (HTTP 403), so all
 # Prydwen requests go through requests in a background thread instead.
 def _get_html(url, timeout=30):
-    response = requests.get(url, headers=BROWSER_HEADERS, timeout=timeout)
-    response.raise_for_status()
-    return response.text
+    return _get_html_process(url, timeout=timeout)
 
 
 # -------------------- FETCH INDEX -------------------- #

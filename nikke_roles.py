@@ -119,7 +119,6 @@ NIKKE_LIST = [
     {"name": "Little Mermaid", "manufacturer": "Pilgrim", "burst": 1},
     {"name": "Rapunzel", "manufacturer": "Pilgrim", "burst": 1},
     {"name": "Red Hood", "manufacturer": "Pilgrim", "burst": 1},
-    {"name": "Siren", "manufacturer": "Pilgrim", "burst": 1},
     # Pilgrim Burst 2
     {"name": "Crown", "manufacturer": "Pilgrim", "burst": 2},
     {"name": "Grave", "manufacturer": "Pilgrim", "burst": 2},
@@ -249,7 +248,6 @@ NIKKE_ROLE_INFO = {
     "Dorothy": {"color": "#e080a7", "role_name": "Dorothy"},
     "Little Mermaid": {"color": "#6cd3c2", "role_name": "Little Mermaid"},
     "Rapunzel": {"color": "#4cadbb", "role_name": "Rapunzel"},
-    "Siren": {"color": "#353f7c", "role_name": "Siren"},
     "Crown": {"color": "#fff8e6", "role_name": "Crown"},
     "Grave": {"color": "#d23b2a", "role_name": "Grave"},
     "Nihilister": {"color": "#e54559", "role_name": "Nihilister"},

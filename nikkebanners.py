@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import re
 import discord
 from discord.ext import commands
 from bs4 import BeautifulSoup
@@ -79,6 +80,7 @@ def _parse_banners(html):
                 "art": art.get("src") if art else None,
                 "rarity": rarity_el.get_text(strip=True) if rarity_el else "",
                 "kind": kind_el.get_text(strip=True) if kind_el else "",
+                "mode": (timer.get("data-mode", "") or "") if timer else "",
                 "start": _epoch(timer.get("data-start-global", "")) if timer else None,
                 "end": _epoch(timer.get("data-end-global", "")) if timer else None,
                 "phase": phase_name.get_text(strip=True) if phase_name else "",
@@ -87,6 +89,12 @@ def _parse_banners(html):
                 "copy": copy_el.get_text(" ", strip=True) if copy_el else "",
                 "rateups": rateups,
             }
+            # upcoming cards don't carry a rarity chip; the copy does
+            # ("the new Limited SSR debuting in ...")
+            if not banner["rarity"] and banner["copy"]:
+                match = re.search(r"Limited (SSR)|\b(SSR|SR)\b", banner["copy"])
+                if match:
+                    banner["rarity"] = match.group(1) or match.group(2)
             if banner["name"] or banner["slug"]:
                 banners.append(banner)
     return banners
@@ -154,12 +162,16 @@ def _banner_container(banner, page=None):
     info_lines = []
     if page:
         info_lines.append(f"-# Banner {page}")
+    is_live = banner["section"] == "current" and banner["mode"] != "upcoming"
+    if not is_live and banner["start"]:
+        # upcoming cards: data-start-global holds the expected start date
+        info_lines.append(f"-# Expected start on <t:{banner['start']}:F> (<t:{banner['start']}:R>)")
     if banner["end"]:
         info_lines.append(
-            f"-# Ends on <t:{banner['end']}:F> (<t:{banner['end']}:R>)" if banner["section"] == "current"
-            else f"-# Expected <t:{banner['end']}:F> (<t:{banner['end']}:R>)"
+            f"-# Ends on <t:{banner['end']}:F> (<t:{banner['end']}:R>)" if is_live
+            else f"-# Scheduled until <t:{banner['end']}:F>"
         )
-    elif banner["range"]:
+    if not (banner["start"] or banner["end"]) and banner["range"]:
         info_lines.append(f"-# {banner['range']}")
     if chips:
         info_lines.append(chips)
